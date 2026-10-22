@@ -1,0 +1,43 @@
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "sk-f3bb09d49fcb5e44319eac68e07504cea5eb4b56dbe344903244fe39c164712e",
+    "ANTHROPIC_BASE_URL": "https://www.hotaitool.net",
+    "ANTHROPIC_DEFAULT_FABLE_MODEL": "claude-fable-5",
+    "ANTHROPIC_DEFAULT_FABLE_MODEL_NAME": "claude-fable-5",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-opus-4-6",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME": "claude-opus-4-6",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-8",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME": "claude-opus-4-8",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-6",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME": "claude-sonnet-4-6",
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-4-5"
+  },
+  "model": "haiku",
+  "enabledPlugins": {
+    "claude-mermaid@claude-mermaid": true,
+    "superpowers@superpowers-marketplace": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-mermaid": {
+      "source": {
+        "source": "github",
+        "repo": "veelenga/claude-mermaid"
+      }
+    },
+    "superpowers-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "obra/superpowers-marketplace"
+      }
+    },
+    "the-pragmatic-pm": {
+      "source": {
+        "source": "github",
+        "repo": "marfoerst/the-pragmatic-pm"
+      }
+    }
+  },
+  "tui": "fullscreen"
+}

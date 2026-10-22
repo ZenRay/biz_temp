@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>品类分析页 · 配色方案预览</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@6/dist/echarts.min.js"></script>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 24px; background: #fff; color: #0b0b0b; }
+  h1 { font-size: 18px; } h2 { font-size: 14px; margin: 28px 0 4px; color: #52514e; }
+  p.note { font-size: 12px; color: #898781; margin: 2px 0 10px; }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; }
+  .card { border: 1px solid #e1e0d9; border-radius: 8px; padding: 12px; }
+  .chart { width: 520px; height: 260px; }
+  .swatches { display: flex; gap: 6px; margin: 8px 0 4px; }
+  .sw { width: 64px; height: 44px; border-radius: 6px; color: #fff; font-size: 10px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 3px; }
+</style>
+</head>
+<body>
+<h1>品类分析页配色方案（8 槽分类色板 · 已在白底 #ffffff 通过 CVD 校验）</h1>
+<div class="swatches" id="sw"></div>
+<p class="note">固定顺序取用、绝不循环；第 9 个系列起 → 折叠为"其他"。黄/水青/品红在白底对比度 &lt;3:1，靠 legend + tooltip 文字标签兜底（身份从不只靠颜色）。</p>
+
+<h2>① 角色色 —— 对比折线图（选中品类 / 本仓 Top1 / 跨仓 Top1）</h2>
+<p class="note">slot1 蓝=选中品类主线（粗实线）；slot2 橙=本仓 Top1 基准（虚线）；slot3 水青=跨仓 Top1（虚线，tooltip 附得主）。系列身份是"角色"，换品类不换色。</p>
+<div class="card"><div class="chart" id="role"></div></div>
+
+<h2>② 多 legend 分类色 —— 30 日下单频次图（8 桶 = 8 槽全用）</h2>
+<p class="note">legend 顶部居中、可点击隐藏（echarts 默认行为）。</p>
+<div class="card"><div class="chart" id="freq"></div></div>
+
+<h2>③ 顺序单色渐变 —— Top10 货值热力图（magnitude 用色相深浅，不用彩虹）</h2>
+<div class="card"><div class="chart" id="heat"></div></div>
+
+<h2>④ 序数阶梯 —— L1/L2/L3 目标堆叠面积（档位有序 → 同色系 250/450/650 三步）</h2>
+<div class="card"><div class="chart" id="area"></div></div>
+
+<h2>⑤ 单度量条形 —— 品类下单店铺数 / 覆盖率排名柱（单色 slot1，选中品类加深强调）</h2>
+<div class="card"><div class="chart" id="bar"></div></div>
+
+<script>
+const CAT = ["#2a78d6","#eb6834","#1baf7a","#eda100","#e87ba4","#008300","#6250d6","#e34948"];
+document.getElementById('sw').innerHTML = CAT.map((c,i)=>`<div class="sw" style="background:${c}">${i+1} ${c}</div>`).join('');
+const days = ['10-12','10-13','10-14','10-15','10-16','10-17'];
+const base = { textStyle:{fontSize:11}, grid:{left:44,right:12,top:34,bottom:28} };
+
+echarts.init(document.getElementById('role')).setOption({...base,
+  legend:{top:0,left:'center',itemWidth:14},
+  xAxis:{type:'category',data:days}, yAxis:{type:'value'},
+  series:[
+    {name:'秋月梨（选中品类）',type:'line',data:[0.089,0.092,0.082,0.075,0.081,0.088],color:CAT[0],lineStyle:{width:2.5}},
+    {name:'本仓Top1品类',type:'line',data:[0.120,0.139,0.149,0.126,0.131,0.142],color:CAT[1],lineStyle:{type:'dashed'}},
+    {name:'跨仓Top1品类',type:'line',data:[0.21,0.23,0.22,0.25,0.24,0.26],color:CAT[2],lineStyle:{type:'dashed'}}
+  ]});
+
+const freq = ['0次','1次','2次','3次','4次','5次','6次','7+次'];
+echarts.init(document.getElementById('freq')).setOption({...base,
+  legend:{top:0,left:'center',type:'scroll',itemWidth:14},
+  color:CAT, xAxis:{type:'category',data:days}, yAxis:{type:'value'},
+  series:freq.map((n,i)=>({name:n,type:'line',data:days.map((_,d)=>Math.round(50+Math.sin(d+i)*30+i*8))}))});
+
+echarts.init(document.getElementById('heat')).setOption({...base,
+  grid:{left:60,right:16,top:16,bottom:56},
+  tooltip:{position:'top'},
+  xAxis:{type:'category',data:days}, yAxis:{type:'category',data:[...Array(10).keys()].map(i=>'Top'+(i+1)).reverse()},
+  visualMap:{min:0,max:100,calculable:true,orient:'horizontal',left:'center',bottom:0,itemWidth:10,itemHeight:80,
+    inRange:{color:['#cde2fb','#86b6ef','#3987e5','#2a78d6','#256abf','#1c5cab','#184f95','#104281','#0d366b']}},
+  series:[{type:'heatmap',data:Array.from({length:60},(_,i)=>[i%6,Math.floor(i/6),Math.round(Math.random()*100)]),
+    label:{show:false},itemStyle:{borderColor:'#fff',borderWidth:2}}]});
+
+echarts.init(document.getElementById('area')).setOption({...base,
+  legend:{top:0,left:'center'},
+  color:['#86b6ef','#2a78d6','#184f95'],
+  xAxis:{type:'category',data:days}, yAxis:{type:'value'},
+  series:[{name:'L3目标',type:'line',stack:'t',areaStyle:{},data:[30,32,30,33,34,32],symbol:'none'},
+          {name:'L2目标',type:'line',stack:'t',areaStyle:{},data:[20,21,20,22,21,20],symbol:'none'},
+          {name:'L1目标',type:'line',stack:'t',areaStyle:{},data:[10,11,10,12,11,10],symbol:'none'}]});
+
+echarts.init(document.getElementById('bar')).setOption({...base,
+  grid:{left:44,right:12,top:24,bottom:40},
+  xAxis:{type:'category',data:['秋月梨','红富士苹果','凯特芒','酥梨','麒麟西瓜'].reverse()},
+  yAxis:{type:'value'},
+  series:[{type:'bar',barMaxWidth:28,itemStyle:{borderRadius:[4,4,0,0]},
+    data:[{value:180,itemStyle:{color:'#1c5cab'}},
+      {value:95,itemStyle:{color:'#2a78d6'}},{value:72,itemStyle:{color:'#2a78d6'}},
+      {value:58,itemStyle:{color:'#2a78d6'}},{value:41,itemStyle:{color:'#2a78d6'}}]}]});
+</script>
+</body>
+</html>

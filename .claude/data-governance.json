@@ -1,0 +1,36 @@
+{
+  "version": "1.0",
+  "reportPath": "docs/data-governance/reports",
+  "requireConfirmation": true,
+  "rules": {
+    "naming": {
+      "countSuffix": "_num",
+      "amountSuffix": "_amt",
+      "rateSuffix": "_rate",
+      "timeWindowSuffix": [
+        "_1d", "_7d", "_30d", "_14d",
+        "_mtd", "_ytd",
+        "_m1d", "_m3d", "_m7d", "_m14d", "_m30d",
+        "_a1d", "_a3d", "_a7d", "_a14d", "_a30d",
+        "_cdta1d", "_cdta3d", "_cdta7d", "_cdta14d", "_cdta30d",
+        "_cd"
+      ],
+      "customerTypeSuffix": ["_new", "_old", "_recall"]
+    },
+    "dataType": {
+      "amountType": ["numeric", "decimal"],
+      "integerTypes": ["int", "integer", "bigint", "smallint", "tinyint"],
+      "rateType": ["numeric", "decimal"],
+      "textCheck": {
+        "enabled": true,
+        "strictMode": false,
+        "suggestSplit": true
+      }
+    }
+  },
+  "strictness": {
+    "naming": "ERROR",
+    "dataType": "WARNING",
+    "definition": "WARNING"
+  }
+}
