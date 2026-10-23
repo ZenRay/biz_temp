@@ -1,4 +1,3 @@
-
 /*
 跨中心仓Top
 */
@@ -52,7 +51,7 @@ WITH base AS(
         AND INSTR(t1.category_level1_name, "水果") > 0
     QUALIFY rnk = 1
 
-    UNION ALL
+    UNION
 
     SELECT
         t1.dt -- "日期"
@@ -77,7 +76,7 @@ WITH base AS(
         AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
     QUALIFY rnk = 1
 
-    UNION ALL
+    UNION
 
     SELECT
         t1.dt -- "日期"
@@ -102,7 +101,7 @@ WITH base AS(
         AND INSTR(t1.category_level1_name, "水果") >0
     QUALIFY rnk = 1
 
-    UNION ALL
+    UNION
     SELECT
         t1.dt -- "日期"
         ,t1.mall_id -- "商城id" BIGINT
@@ -127,7 +126,7 @@ WITH base AS(
         QUALIFY rnk = 1
 
 
-    UNION ALL
+    UNION
 
 
     SELECT
@@ -154,7 +153,7 @@ WITH base AS(
     QUALIFY rnk = 1
 
 
-    UNION ALL
+    UNION
 
 
     SELECT
@@ -178,7 +177,7 @@ WITH base AS(
         AND t1.ordered_store_ratio_by_cat1 > 0
         AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
 
-    UNION ALL 
+    UNION 
     SELECT
         t1.dt
         ,t1.mall_id
@@ -202,8 +201,33 @@ WITH base AS(
         AND INSTR(t1.category_level1_name, "水果") >0
         AND t1.exposed2ordered_store_ratio > 0
     QUALIFY rnk = 1
+
+    UNION 
+    SELECT
+        t1.dt
+        ,t1.mall_id
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,t1.category_level4_name
+        ,t1.merchant_id AS merchant_id
+        ,t1.merchant_name AS merchant_name
+        ,NULL AS sku_id
+        ,NULL AS sku_name
+        ,t1.ordered_store_num AS metric_value
+        ,"跨中心仓Top1商家品类下单店铺数" AS top_type
+        ,"一级类目" AS join_type
+        ,DENSE_RANK()OVER(
+            PARTITION BY t1.dt, t1.category_level1_id
+                ORDER BY t1.ordered_store_num DESC
+        ) AS rnk
+    FROM changsha_mct_cat4_stat_daily_asc t1
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND INSTR(t1.category_level1_name, "水果") >0
+        AND t1.ordered_store_num > 0
+    QUALIFY rnk = 1
     
-    UNION ALL
+    UNION
 
     SELECT
         t1.dt
@@ -229,7 +253,7 @@ WITH base AS(
         AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
     QUALIFY rnk = 1
 
-    UNION ALL
+    UNION
 
     SELECT
         t1.dt
@@ -255,7 +279,7 @@ WITH base AS(
         AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
     QUALIFY rnk = 1
 
-    UNION ALL
+    UNION
 
     SELECT
         t1.dt
@@ -278,7 +302,7 @@ WITH base AS(
         AND t1.ordered_store_ratio_by_cat1 > 0
         AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
 
-    UNION ALL
+    UNION
 
     SELECT
         t1.dt
@@ -301,7 +325,7 @@ WITH base AS(
         AND t1.exposed2ordered_store_ratio > 0
         AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
 
-    UNION ALL
+    UNION
 
     SELECT
         t1.dt
@@ -324,7 +348,7 @@ WITH base AS(
         AND t1.exposed2ordered_store_ratio > 0
         AND INSTR(t1.category_level1_name, "水果") > 0
 
-    UNION ALL 
+    UNION 
     SELECT
         t1.dt
         ,t1.mall_id
@@ -349,7 +373,7 @@ WITH base AS(
         AND INSTR(t1.category_level1_name, "水果") >0
     QUALIFY rnk = 1
 
-    UNION ALL
+    UNION
 
     SELECT
         t1.dt
@@ -375,7 +399,7 @@ WITH base AS(
         AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
     QUALIFY rnk = 1
 
-    -- UNION ALL
+    -- UNION
 
     -- SELECT
     --     t1.dt
@@ -424,5 +448,3 @@ FROM base t1
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 ;
-
-

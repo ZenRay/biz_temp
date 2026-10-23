@@ -1,8 +1,6 @@
-
 /*
-商品门店Top20统计
+商品Top门店统计
 */
-
 
 
 -- DROP TABLE IF EXISTS changsha_sku_top_daily_asc;
@@ -61,8 +59,16 @@ WITH mall AS(
 )
 
 
+,dim_dates AS(
+    SELECT
+        t1.dt
+    FROM datawarehouse_max.dim_date_full t1
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+)
 
-,css AS (
+
+,temp AS (
 
     SELECT /*+ MAPJOIN(t0) */
         DATEADD(DATE(t0.dt), + 1, "dd") AS dt
@@ -74,6 +80,23 @@ WITH mall AS(
                 AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
             ,t1.refund_amt_by_asdt, 0
         )) AS refund_amt_30d_by_asdt
+        ,COUNT(DISTINCT IF(
+            t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
+                AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
+                AND t1.after_sale_num_by_asdt > 0
+            , t1.dt, NULL
+        )) AS applied_after_sale_cnt_30d_by_asdt
+        ,SUM(IF(
+            t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
+                AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
+            ,t1.delivered_goods_amt, 0
+        )) AS delivered_goods_amt_30d
+        ,COUNT(IF(
+            t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
+                AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
+                AND t1.ordered_goods_num > 0
+            ,t1.dt, NULL
+        )) AS ordered_cnt_30d
     FROM(
         SELECT
             t1.dt
@@ -81,16 +104,20 @@ WITH mall AS(
             ,t1.customer_store_id
             ,t1.mall_id
             ,t1.final_refund_amt AS refund_amt_by_asdt
+            ,t1.delivered_goods_amt
+            ,t1.ordered_goods_num
+            ,t1.after_sale_num AS after_sale_num_by_asdt
         FROM datawarehouse_max.dws_store_mall_store_sku_base_daily_asc t1
         WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") -6 -30, "dd")
-                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 1, "dd")
             AND t1.mall_id = 871
-            AND t1.final_refund_amt > 0
+            AND NVL(t1.final_refund_amt,0) + NVL(t1.delivered_goods_amt, 0)
+                + NVL(t1.ordered_goods_num, 0) > 0
+            AND ISNOTNULL(t1.sku_id)
+            AND ISNOTNULL(t1.customer_store_id)
     ) t1
-    JOIN datawarehouse_max.dim_date_full  t0
-        ON t0.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
-            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-        AND t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
+    JOIN dim_dates  t0
+        ON t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
             AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
     
     GROUP BY DATEADD(DATE(t0.dt), + 1, "dd")
@@ -115,7 +142,7 @@ WITH mall AS(
         ,t2.province_id -- "省id" BIGINT
         ,t2.province_name -- "省名称" STRING
         ,t2.city_id -- "市id" BIGINT
-        ,t2.city_name -- "市名称" STRING
+        ,REGEXP_REPLACE(t2.city_name, "\\d", "") AS city_name -- "市名称" STRING
         ,t2.county_id -- "区县id" BIGINT
         ,t2.county_name -- "区县名称" STRING
         ,t2.grid_id -- "网格ID" BIGINT
@@ -123,34 +150,28 @@ WITH mall AS(
         ,t2.bd_id -- "BDID" BIGINT
         ,t2.bd_name -- "BD姓名" STRING
         
-        ,t1.ordered_days_30d AS ordered_cnt_30d -- "近30天下单频次" BIGINT
+        ,t1.ordered_cnt_30d -- "近30天下单频次" BIGINT
         ,t1.delivered_goods_amt_30d-- "近30天货值" DECIMAL(10,2)
-        ,t1.after_sale_days_30d AS applied_after_sale_cnt_30d -- "近30天售后频次" BIGINT
-        ,t3.refund_amt_30d_by_asdt -- "近30天赔付金额" DECIMAL(10,2)
+        ,t1.applied_after_sale_cnt_30d_by_asdt AS applied_after_sale_cnt_30d -- "近30天售后频次" BIGINT
+        ,t1.refund_amt_30d_by_asdt -- "近30天赔付金额" DECIMAL(10,2)
         ,ROUND(
-            t1.after_sale_days_30d / t1.ordered_days_30d, 6
+            t1.applied_after_sale_cnt_30d_by_asdt / t1.ordered_cnt_30d, 6
         ) AS applied_after_sale_ratio_by_ordered -- "近30天售后频次占比" DECIMAL(10,6)
 
         ,ROW_NUMBER()OVER(
-            PARTITION BY t1.dt, t1.mall_id, t1.sku_id ORDER BY t1.after_sale_days_30d / t1.ordered_days_30d DESC
+            PARTITION BY t1.dt, t1.mall_id, t1.sku_id ORDER BY t1.applied_after_sale_cnt_30d_by_asdt / t1.ordered_cnt_30d DESC
         ) applied_after_sale_ratio_by_ordered_desc_rnk -- "售后频次占比倒序排名" BIGINT
         ,ROW_NUMBER()OVER(
             PARTITION BY t1.dt, t1.mall_id, t1.sku_id ORDER BY t1.delivered_goods_amt_30d DESC
         ) AS delivered_goods_amt_30d_desc_cnk -- "总货值倒序排名" BIGINT
         ,t1.dt
-    FROM datawarehouse_max.dws_store_mall_store_sku_feature_daily_asc t1
+    FROM temp t1
     LEFT JOIN datawarehouse_max.dim_store_daily_full t2
         ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t2.dt = t1.dt
         AND t2.mall_id = t1.mall_id
         AND t2.customer_store_id = t1.customer_store_id
-    JOIN datawarehouse_max.ads_changsha_sku_dashboard_daily_asc t0
-        ON t0.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
-                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-        AND t0.dt = t1.dt
-        AND t0.goods_id = t1.sku_id
-        AND t1.mall_id = 871
     LEFT JOIN datawarehouse_max.dim_goods_daily_full t01
         ON t01.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
@@ -158,16 +179,11 @@ WITH mall AS(
         AND t01.sku_id = t1.sku_id
         AND t01.mall_id = t1.mall_id
 
-    LEFT JOIN css t3
-        ON t3.dt = t1.dt
-        AND t3.sku_id = t1.sku_id
-        AND t3.mall_id = t1.mall_id
-        AND t3.customer_store_id = t1.customer_store_id
     WHERE 
         t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
-        AND t1.category_level4_name IN ("秋月梨", "红富士苹果")
+        
 )
 
 INSERT OVERWRITE TABLE changsha_sku_top_daily_asc PARTITION (dt)
@@ -248,5 +264,4 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
     AND t1.mall_id = 871
 
 ;
-
 

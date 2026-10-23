@@ -65,3 +65,4 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
     AND ISNOTNULL(t1.mall_id)
 
 ;
+

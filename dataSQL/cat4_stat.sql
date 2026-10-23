@@ -1,4 +1,3 @@
-
 /*
 四级类目统计
 */
@@ -708,16 +707,14 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
 --         -- 长沙仓仓内过滤
 --         (
 --             t1.mall_id = 871 AND (
---                 t1.exposed_store_num_desc_rnk=1 OR t1.category_level4_name IN ("秋月梨", "红富士苹果")
+--                 t1.exposed_store_num_desc_rnk=1 OR t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
 --             )
 --         )
 --         -- 跨仓过滤
 --             OR (
 --                 t1.exposed_store_ratio_by_mall_desc_rnk =1
---                     AND t1.category_level4_name IN ("秋月梨", "红富士苹果")
+--                     AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
 --             )
 --     )
 -- ;
 ;
-
-

@@ -705,7 +705,7 @@ WITH mall AS(
             AND ISNOTNULL(t1.customer_store_id) AND ISNOTNULL(t1.sku_id)
             AND NVL(t1.ordered_days_30d,0) + NVL(t1.exposed_days_30d, 0) > 0
 
-        UNION ALL
+        UNION
 
         SELECT
             t1.dt
@@ -1133,6 +1133,7 @@ WITH mall AS(
                 AND DATEADD(DATE(t1.dt), 6, "dd")
             AND t2.mall_id = t1.mall_id
             AND t2.sku_id = t1.sku_id
+            AND t2.customer_store_id = t1.customer_store_id
         GROUP BY t1.dt
             ,t1.mall_id
             ,t1.sku_id
@@ -1371,4 +1372,3 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
     AND t1.mall_id = 871
 ;
-

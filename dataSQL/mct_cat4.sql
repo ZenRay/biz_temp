@@ -1,4 +1,3 @@
-
 /*
 商家四级类目统计
 */
@@ -647,7 +646,7 @@ WITH mall AS(
         ON t9.dt = t1.dt
         AND t9.mall_id = t1.mall_id
         AND t9.merchant_id = t1.merchant_id
-        AND t9.category_level4_id = t4.category_level4_id
+        AND t9.category_level4_id = t1.category_level4_id
     
     LEFT JOIN dt_css t10
         ON t10.dt = t1.dt
@@ -660,6 +659,7 @@ WITH mall AS(
         AND ISNOTNULL(t1.category_level4_id)
         
 )
+
 
 
 INSERT OVERWRITE TABLE changsha_mct_cat4_stat_daily_asc PARTITION(dt)
@@ -753,6 +753,7 @@ LEFT JOIN (
     AND t2.mall_id = t1.mall_id
     AND t2.category_level1_id = t1.category_level1_id
     AND t2.category_level4_id = t1.category_level4_id
+    AND t2.merchant_id = t1.merchant_id
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 ;

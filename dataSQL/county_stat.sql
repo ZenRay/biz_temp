@@ -1,3 +1,7 @@
+/*
+区县统计
+*/
+
 -- DROP TABLE IF EXISTS changsha_county_daily_asc;
 -- CREATE TABLE IF NOT EXISTS changsha_county_daily_asc (
 --     mall_id  BIGINT COMMENT "商城ID"
@@ -53,6 +57,36 @@ WITH visited_store AS(
         ,t1.bd_name
 )
 
+
+,base AS(
+    SELECT
+        t1.mall_id -- "商城ID" BIGINT
+        ,t1.province_id -- "省ID" BIGINT
+        ,t1.province_name -- "省名称" STRING
+        ,t1.city_id -- "市ID" BIGINT
+        ,REGEXP_REPLACE(t1.city_name, "\\d", "") AS city_name -- "市名称" STRING -- "市名称" STRING
+        ,t1.county_id -- "区县ID" BIGINT
+        ,t1.county_name -- "区县名称" STRING
+        ,SUM(t1.ordered_store_num) AS ordered_store_num -- "下单门店数" BIGINT
+
+
+        ,t1.dt
+    FROM datawarehouse_max.dws_pub_mall_country_base_daily_asc t1
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND t1.mall_id = 871
+        AND ISNOTNULL(t1.county_id)
+    GROUP BY t1.mall_id -- "商城ID" BIGINT
+        ,t1.province_id -- "省ID" BIGINT
+        ,t1.province_name -- "省名称" STRING
+        ,t1.city_id -- "市ID" BIGINT
+        ,REGEXP_REPLACE(t1.city_name, "\\d", "")
+        ,t1.county_id -- "区县ID" BIGINT
+        ,t1.county_name -- "区县名称" STRING
+        ,t1.dt
+
+)
+
 INSERT OVERWRITE TABLE changsha_county_daily_asc PARTITION(dt)
 SELECT
     t1.mall_id -- "商城ID" BIGINT
@@ -69,7 +103,7 @@ SELECT
     ,t2.visited_store_num -- "拜访门店数量" BIGINT
 
     ,t1.dt
-FROM datawarehouse_max.dws_pub_mall_country_base_daily_asc t1
+FROM base t1
 LEFT JOIN (
     SELECT
         t1.dt
@@ -99,7 +133,6 @@ LEFT JOIN (
     AND t2.county_id = t1.county_id
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-    AND t1.mall_id = 871
-    AND ISNOTNULL(t1.county_id)
 
 ;
+

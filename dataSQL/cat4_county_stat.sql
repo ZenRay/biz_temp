@@ -31,7 +31,25 @@
 
 
 
-WITH dim_sku AS(
+WITH mall AS(
+    SELECT
+        t1.mall_id
+        ,t1.mall
+    FROM datawarehouse_max.dim_mall_full t1
+    WHERE t1.mall IN (
+        "标果南昌", 
+        "标果嘉兴", 
+        "标果成都", 
+        "标果东莞", 
+        "标果贵阳", 
+        "标果郑州", 
+        "标果西安",
+        "标果长沙"
+    )
+)
+
+
+,dim_sku AS(
     SELECT 
         t1.dt
         ,t1.sku_id
@@ -61,12 +79,11 @@ WITH dim_sku AS(
         ,t1.province_id
         ,t1.province_name
         ,t1.city_id
-        ,t1.city_name
+        ,REGEXP_REPLACE(t1.city_name, "\\d", "") AS city_name
         ,t1.county_id
         ,t1.county_name
         ,t2.is_login
         ,t1.use_status
-        ,t2.county_model
     FROM datawarehouse_max.dim_store_daily_full t1
     LEFT JOIN datawarehouse_max.ads_store_mall_store_central_warehouse_fruit_features_daily_asc  t2
         ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
@@ -74,6 +91,7 @@ WITH dim_sku AS(
         AND t2.dt = t1.dt
         AND t2.mall_id = t1.mall_id
         AND t2.customer_store_id = t1.customer_store_id 
+    
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
@@ -93,10 +111,6 @@ WITH dim_sku AS(
         ,t1.city_name -- "市名称" STRING
         ,t1.county_id -- "区县ID" BIGINT
         ,t1.county_name -- "区县名称" STRING
-        ,WM_CONCAT(
-            DISTINCT "-"
-            ,t1.operation_type_county
-        ) AS operation_type_county -- "区县运营类型" STRING
         ,COUNT(DISTINCT IF(
             t1.exposed_cnt>0, t1.customer_store_id, NULL
         )) AS exposed_store_num -- "曝光店铺数" BIGINT
@@ -111,8 +125,6 @@ WITH dim_sku AS(
         SELECT
             t1.dt
             ,t1.mall_id
-            ,t2.merchant_id
-            ,t2.merchant_name
             ,t2.category_level1_id
             ,t2.category_level1_name
             ,t2.category_level4_id
@@ -130,12 +142,6 @@ WITH dim_sku AS(
             ,t1.delivered_goods_amt
             ,t1.delivered_goods_num
             ,t1.deliveried_gross_wgt
-            ,CASE
-                WHEN
-                    INSTR(t3.county_model, "自营") > 0
-                THEN "自营区域"
-                ELSE "代理区域"
-            END AS operation_type_county -- "区县运营类型" STRING
             ,t1.exposed_cnt
             ,t1.clicked_cnt
             ,t1.added_cnt
@@ -177,8 +183,6 @@ WITH dim_sku AS(
 ,base AS(
     SELECT
         t1.mall_id -- "商城ID" BIGINT
-        ,t1.merchant_id -- "商家ID" BIGINT
-        ,t1.merchant_name -- "商家名称" STRING
         ,t1.category_level1_id -- "一级类目ID" BIGINT
         ,t1.category_level1_name -- "一级类目名称" STRING
         ,t1.category_level4_id -- "四级类目ID" BIGINT
@@ -189,15 +193,42 @@ WITH dim_sku AS(
         ,t1.city_name -- "市名称" STRING
         ,t1.county_id -- "区县ID" BIGINT
         ,t1.county_name -- "区县名称" STRING
-        ,IF(
-            INSTR(t1.operation_type_county, "自营")>0, "自营区域", "代理区域"
-        ) AS operation_type_county -- "区县运营类型" STRING
+        ,NVL(t2.business_model, "自营") || "区域" AS operation_type_county -- "区县运营类型" STRING
+        
         ,t1.exposed_store_num -- "曝光店铺数" BIGINT
         ,t1.clicked_store_num -- "点击店铺数" BIGINT
         ,t1.ordered_store_num -- "下单店铺数" BIGINT
         ,t1.delivered_goods_amt -- "货值" DECIMAL(10,2)
         ,t1.dt
     FROM temp t1
+    LEFT JOIN (
+        SELECT
+            t1.dt
+            ,t1.mall_name
+            ,t0.mall_id
+            ,t1.province_name
+            ,t1.city_name
+            ,t1.county_name
+            ,t1.business_model
+        FROM  datawarehouse_max.ods_feishu_mall_county_business_model_info_daily_full  t1
+        JOIN mall t0
+            ON t0.mall = t1.mall_name
+        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+            AND t1.dt BETWEEN t1.start_data AND t1.end_data
+        GROUP BY t1.dt
+            ,t1.mall_name
+            ,t0.mall_id
+            ,t1.province_name
+            ,t1.city_name
+            ,t1.county_name
+            ,t1.business_model
+    ) t2
+        ON t2.dt = t1.dt
+        AND t1.mall_id = t2.mall_id
+        AND t2.province_name = t1.province_name
+        AND t2.city_name = t1.city_name
+        AND t2.county_name = t1.county_name
 
 )
 
