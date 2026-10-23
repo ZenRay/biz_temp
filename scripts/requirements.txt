@@ -1,0 +1,5 @@
+# BIDashboard 数据工具脚本依赖（scripts/import_data2miaoda.sh 等）
+# 环境：pyenv local 3.12.13 + python -m venv .venv（仓库根目录）
+# 安装：.venv/bin/pip install -r scripts/requirements.txt
+pyarrow>=18
+pandas>=2
