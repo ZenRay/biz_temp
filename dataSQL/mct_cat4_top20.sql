@@ -263,7 +263,7 @@ SELECT
 	,t1.refund_amt_30d_by_asdt -- "近30天赔付金额" DECIMAL(10,2)
 	,t1.applied_after_sale_ratio_by_ordered -- "近30天售后频次占比" DECIMAL(10,6)
 
-	,t1.delivered_goods_amt_30d_desc_cnk AS store_rnk -- "排名" BIGINT
+	,t1.applied_after_sale_ratio_by_ordered_desc_rnk AS store_rnk -- "排名" BIGINT
     ,"ASTop20" AS top_type -- "头部类型" STRING
     ,t1.dt
 
