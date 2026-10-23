@@ -12,6 +12,7 @@
 -- 	,merchant_name STRING COMMENT "商家名称"
 -- 	,customer_store_id BIGINT COMMENT "店铺id"
 -- 	,customer_store_name STRING COMMENT "店铺名称"
+--     ,store_type  STRING COMMENT "门店类型"
 -- 	,province_id BIGINT COMMENT "省id"
 -- 	,province_name STRING COMMENT "省名称"
 -- 	,city_id BIGINT COMMENT "市id"
@@ -145,6 +146,7 @@ WITH mall AS(
         ,t01.merchant_name -- "商家名称" STRING
         ,t1.customer_store_id -- "店铺id" BIGINT
         ,t2.customer_store_name -- "店铺名称" STRING
+        ,t2.store_type_desc AS store_type -- "门店类型" STRING
         ,t2.province_id -- "省id" BIGINT
         ,t2.province_name -- "省名称" STRING
         ,t2.city_id -- "市id" BIGINT
@@ -210,6 +212,7 @@ SELECT
 	,t1.merchant_name -- "商家名称" STRING
 	,t1.customer_store_id -- "店铺id" BIGINT
 	,t1.customer_store_name -- "店铺名称" STRING
+    ,t1.store_type -- "门店类型" STRING
 	,t1.province_id -- "省id" BIGINT
 	,t1.province_name -- "省名称" STRING
 	,t1.city_id -- "市id" BIGINT
@@ -247,6 +250,7 @@ SELECT
 	,t1.merchant_name -- "商家名称" STRING
 	,t1.customer_store_id -- "店铺id" BIGINT
 	,t1.customer_store_name -- "店铺名称" STRING
+    ,t1.store_type -- "门店类型" STRING
 	,t1.province_id -- "省id" BIGINT
 	,t1.province_name -- "省名称" STRING
 	,t1.city_id -- "市id" BIGINT
