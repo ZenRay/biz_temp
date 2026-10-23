@@ -27,6 +27,7 @@
 --     ,applied_after_sale_ticket_num_by_asdt BIGINT COMMENT "提交售后单数量"
 -- 	,refund_amt_by_asdt_plat DECIMAL(10,2) COMMENT "平台承担售后赔付金额售后提交日"
 --     ,applied_after_sale_ticket_num_by_asdt_info STRING COMMENT "提交售后类型售后单数量" 
+--     ,applied_after_sale_type_info STRING COMMENT "售后问题类型详情"
 -- 	,applied_store_num_by_asdt BIGINT COMMENT "提交日售后门店数"
 -- 	,rebuy_store_num_cdta26d_applied_asdt BIGINT COMMENT "售后七日复购店铺数"
 -- 	,rebuy_store_num_cdta2d_applied_asdt BIGINT COMMENT "售后三日复购店铺数"
@@ -193,7 +194,7 @@ WITH mall AS(
 )
 
 
-,css_temp AS (
+,css_base AS(
     SELECT
         t1.dt
         ,t2.category_level1_id
@@ -201,10 +202,10 @@ WITH mall AS(
         ,t1.mall_id
         ,t2.merchant_id
         ,t1.customer_store_id
-        ,COUNT(DISTINCT t1.after_sale_no) AS applied_after_sale_ticket_num_by_asdt -- "申请售后单量" BIGINT
-        ,SUM(NVL(t1.company_bear_refund_amt, 0)) AS refund_amt_by_asdt_plat -- '平台承担赔付金额
-        
-        ,COUNT(DISTINCT t1.customer_store_id) AS applied_store_num_by_asdt -- "售后门店数量" BIGINT
+        ,t1.after_sale_no
+        ,t1.company_bear_refund_amt
+        ,t1.seller_bear_refund_amt
+        ,t1.after_sale_type_problem_title
     FROM datawarehouse_max.dwt_order_after_sale_daily_asc t1
     LEFT JOIN dim_sku t2
         ON t2.dt = t1.dt
@@ -215,10 +216,65 @@ WITH mall AS(
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
         AND t1.status != "CANCEL"
+
+)
+
+,css_type_info AS(
+    SELECT
+        t1.dt
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,t1.mall_id
+        ,t1.merchant_id
+        , "[" || WM_CONCAT(", ", t1.applied_after_sale_type_item) || "]" AS applied_after_sale_type_info
+    FROM(
+        SELECT
+            t1.dt
+            ,t1.category_level1_id
+            ,t1.category_level4_id
+            ,t1.mall_id
+            ,t1.merchant_id
+            ,t1.after_sale_type_problem_title
+
+            ,COUNT(DISTINCT t1.after_sale_no) AS applied_after_sale_ticket_num_asdt
+            ,SUM(t1.company_bear_refund_amt) AS company_bear_refund_amt
+            ,SUM(t1.seller_bear_refund_amt) AS seller_bear_refund_amt
+            ,"{"
+                || '"售后问题类型": "' || t1.after_sale_type_problem_title || '",'
+                || '"提交售后单数量": ' || COUNT(DISTINCT t1.after_sale_no) || ","
+                || '"商家承担售后赔付金额": ' || SUM(t1.seller_bear_refund_amt)
+            || "}" AS applied_after_sale_type_item
+        FROM css_base t1
+        GROUP BY t1.dt
+            ,t1.category_level1_id
+            ,t1.category_level4_id
+            ,t1.mall_id
+            ,t1.merchant_id
+            ,t1.after_sale_type_problem_title
+    ) t1
     GROUP BY t1.dt
-        ,t2.category_level1_id
-        ,t2.category_level4_id
-        ,t2.merchant_id
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,t1.mall_id
+        ,t1.merchant_id
+)
+
+,css_temp AS (
+    SELECT
+        t1.dt
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,t1.mall_id
+        ,t1.merchant_id
+        ,t1.customer_store_id
+        ,COUNT(DISTINCT t1.after_sale_no) AS applied_after_sale_ticket_num_by_asdt -- "申请售后单量" BIGINT
+        ,SUM(NVL(t1.company_bear_refund_amt, 0)) AS refund_amt_by_asdt_plat -- '平台承担赔付金额
+        
+    FROM css_base t1
+    GROUP BY t1.dt
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,t1.merchant_id
         ,t1.mall_id
         ,t1.customer_store_id
 
@@ -235,7 +291,7 @@ WITH mall AS(
         ,t1.merchant_id
         ,SUM(t1.applied_after_sale_ticket_num_by_asdt) AS applied_after_sale_ticket_num_by_asdt -- "提交售后单数量" BIGINT
         ,SUM(t1.refund_amt_by_asdt_plat) AS refund_amt_by_asdt_plat -- '平台承担赔付金额
-        ,SUM(t1.applied_store_num_by_asdt) AS applied_store_num_by_asdt -- "售后门店数量" BIGINT
+        ,COUNT(DISTINCT t1.customer_store_id) AS applied_store_num_by_asdt -- "售后门店数量" BIGINT
     FROM css_temp t1
     GROUP BY t1.dt
         ,t1.category_level1_id
@@ -686,6 +742,7 @@ SELECT
     ,t1.applied_after_sale_ticket_num_by_asdt -- "提交售后单数量" BIGINT
 	,t1.refund_amt_by_asdt_plat -- "平台承担售后赔付金额售后提交日" DECIMAL(10,2)
     ,t1.applied_after_sale_ticket_num_by_asdt_info -- "提交售后类型售后单数量" STRING
+    ,t3.applied_after_sale_type_info -- "售后问题类型详情" STRING
 	,t1.applied_store_num_by_asdt -- "提交日售后门店数" BIGINT
 	,t1.rebuy_store_num_cdta26d_applied_asdt -- "售后七日复购店铺数" BIGINT
 	,t1.rebuy_store_num_cdta2d_applied_asdt -- "售后三日复购店铺数" BIGINT
@@ -754,6 +811,12 @@ LEFT JOIN (
     AND t2.category_level1_id = t1.category_level1_id
     AND t2.category_level4_id = t1.category_level4_id
     AND t2.merchant_id = t1.merchant_id
+LEFT JOIN css_type_info t3
+    ON t3.dt = t1.dt
+    AND t3.mall_id = t1.mall_id
+    AND t3.category_level1_id = t1.category_level1_id
+    AND t3.category_level4_id = t1.category_level4_id
+    AND t3.merchant_id = t1.merchant_id
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 ;
