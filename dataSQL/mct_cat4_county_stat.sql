@@ -12,8 +12,8 @@
 -- 	,category_level1_name STRING COMMENT "一级类目名称"
 -- 	,category_level4_id BIGINT COMMENT "四级类目ID"
 -- 	,category_level4_name STRING COMMENT "四级类目名称"
--- 	,province_id BIGINT COMMENT "商城ID"
--- 	,province_name STRING COMMENT "商城名称"
+-- 	,province_id BIGINT COMMENT "省ID"
+-- 	,province_name STRING COMMENT "省名称"
 -- 	,city_id BIGINT COMMENT "市ID"
 -- 	,city_name STRING COMMENT "市名称"
 -- 	,county_id BIGINT COMMENT "区县ID"
@@ -91,8 +91,8 @@ WITH dim_sku AS(
         ,t1.category_level1_name -- "一级类目名称" STRING
         ,t1.category_level4_id -- "四级类目ID" BIGINT
         ,t1.category_level4_name -- "四级类目名称" STRING
-        ,t1.province_id -- "商城ID" BIGINT
-        ,t1.province_name -- "商城名称" STRING
+        ,t1.province_id -- "省ID" BIGINT
+        ,t1.province_name -- "省名称" STRING
         ,t1.city_id -- "市ID" BIGINT
         ,t1.city_name -- "市名称" STRING
         ,t1.county_id -- "区县ID" BIGINT
@@ -218,8 +218,8 @@ SELECT
 	,t1.category_level1_name -- "一级类目名称" STRING
 	,t1.category_level4_id -- "四级类目ID" BIGINT
 	,t1.category_level4_name -- "四级类目名称" STRING
-	,t1.province_id -- "商城ID" BIGINT
-	,t1.province_name -- "商城名称" STRING
+	,t1.province_id -- "省ID" BIGINT
+	,t1.province_name -- "省名称" STRING
 	,t1.city_id -- "市ID" BIGINT
 	,t1.city_name -- "市名称" STRING
 	,t1.county_id -- "区县ID" BIGINT
