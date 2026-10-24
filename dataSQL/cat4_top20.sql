@@ -1,3 +1,4 @@
+
 /*
 品类Top门店
 */
@@ -17,6 +18,7 @@
 -- 	,city_id BIGINT COMMENT "市ID"
 -- 	,city_name STRING COMMENT "市名称"
 -- 	,county_id BIGINT COMMENT "区县ID"
+--     ,operation_type_county STRING COMMENT "区县运营类型"
 -- 	,county_name STRING COMMENT "区县名称"
 --     ,grid_id BIGINT COMMENT "网格ID"
 --     ,grid_name STRING COMMENT "网格名称"
@@ -125,7 +127,7 @@ WITH mall AS(
         ,t1.county_name
         ,t2.is_login
         ,t1.use_status
-        
+        ,NVL(t3.business_model, "自营") || "区域" AS operation_type_county -- "区县运营类型" STRING
     FROM datawarehouse_max.dim_store_daily_full t1
     LEFT JOIN datawarehouse_max.ads_store_mall_store_central_warehouse_fruit_features_daily_asc  t2
         ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
@@ -133,6 +135,34 @@ WITH mall AS(
         AND t2.dt = t1.dt
         AND t2.mall_id = t1.mall_id
         AND t2.customer_store_id = t1.customer_store_id 
+    LEFT JOIN (
+        SELECT
+            t1.dt
+            ,t1.mall_name
+            ,t0.mall_id
+            ,t1.province_name
+            ,t1.city_name
+            ,t1.county_name
+            ,t1.business_model
+        FROM  datawarehouse_max.ods_feishu_mall_county_business_model_info_daily_full  t1
+        JOIN mall t0
+            ON t0.mall = t1.mall_name
+        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+            AND t1.dt BETWEEN t1.start_data AND t1.end_data
+        GROUP BY t1.dt
+            ,t1.mall_name
+            ,t0.mall_id
+            ,t1.province_name
+            ,t1.city_name
+            ,t1.county_name
+            ,t1.business_model
+    ) t3
+        ON t3.dt = t1.dt
+        AND t1.mall_id = t3.mall_id
+        AND t3.province_name = t1.province_name
+        AND t3.city_name = t1.city_name
+        AND t3.county_name = t1.county_name
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
@@ -430,6 +460,7 @@ WITH mall AS(
         ,t5.county_name -- "区县名称" STRING
         ,t5.grid_id -- "网格ID" BIGINT
         ,t5.grid_name -- "网格名称" STRING
+        ,t5.operation_type_county -- "区县运营类型" STRING
         ,t5.bd_id -- "BDID" BIGINT
         ,t5.bd_name -- "BD姓名" STRING
         ,t1.delivered_goods_amt_30d -- "近30天货值" DECIMAL(15,2)
@@ -489,6 +520,7 @@ SELECT
 	,t1.city_name -- "市名称" STRING
 	,t1.county_id -- "区县ID" BIGINT
 	,t1.county_name -- "区县名称" STRING
+    ,t1.operation_type_county -- "区县运营类型" STRING
     ,t1.grid_id -- "网格ID" BIGINT
     ,t1.grid_name -- "网格名称" STRING
     ,t1.bd_id -- "BDID" BIGINT
@@ -530,6 +562,7 @@ SELECT
 	,t1.city_name -- "市名称" STRING
 	,t1.county_id -- "区县ID" BIGINT
 	,t1.county_name -- "区县名称" STRING
+    ,t1.operation_type_county -- "区县运营类型" STRING
     ,t1.grid_id -- "网格ID" BIGINT
     ,t1.grid_name -- "网格名称" STRING
     ,t1.bd_id -- "BDID" BIGINT
@@ -574,6 +607,7 @@ SELECT
 	,t1.city_name -- "市名称" STRING
 	,t1.county_id -- "区县ID" BIGINT
 	,t1.county_name -- "区县名称" STRING
+    ,t1.operation_type_county -- "区县运营类型" STRING
     ,t1.grid_id -- "网格ID" BIGINT
     ,t1.grid_name -- "网格名称" STRING
     ,t1.bd_id -- "BDID" BIGINT
