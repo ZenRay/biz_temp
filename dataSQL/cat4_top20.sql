@@ -1,5 +1,5 @@
-
-/*品类Top门店
+/*
+品类Top门店
 */
 
 -- DROP TABLE IF EXISTS changsha_cat4_store_top_daily_asc;
@@ -114,6 +114,10 @@ WITH mall AS(
         ,t1.province_id
         ,t1.province_name
         ,t1.city_id
+        ,t1.grid_id
+        ,t1.grid_name
+        ,t1.bd_id
+        ,t1.bd_name
         ,REGEXP_REPLACE(t1.city_name, "\\d", "") AS city_name -- "市名称" STRING
         ,t1.county_id
         ,t1.county_name
