@@ -4,114 +4,122 @@
 
 
 
--- DROP TABLE IF EXISTS changsha_sku_stat_daily_asc;
--- CREATE TABLE IF NOT EXISTS changsha_sku_stat_daily_asc (
--- 	mall_id STRING COMMENT "商城id"
--- 	,sku_id BIGINT COMMENT "商品ID"
--- 	,sku_name STRING COMMENT "商品名称"
--- 	,merchant_id BIGINT COMMENT "商家id"
--- 	,merchant_name STRING COMMENT "商家名称"
--- 	,merchant_type STRING COMMENT "商家类型"
--- 	,updated_video_gap BIGINT COMMENT "最近更新视频天数"
--- 	,updated_main_pic_gap BIGINT COMMENT "最近更新主图图片天数"
--- 	,is_updated_merit BIGINT COMMENT "是否卖点更新"
--- 	,merit STRING COMMENT "商品卖点"
--- 	,origin_place STRING COMMENT "产地"
--- 	,product_class STRING COMMENT "等级"
--- 	,product_spec STRING COMMENT "规格"
--- 	,product_variety STRING COMMENT "品种"
--- 	,brand_name STRING COMMENT "品牌"
--- 	,category_level1_id BIGINT COMMENT "一级类目id"
--- 	,category_level1_name STRING COMMENT "一级类目名称"
--- 	,category_level4_id BIGINT COMMENT "四级类目id"
--- 	,category_level4_name STRING COMMENT "四级类目名称"
---     ,is_onshelved BIGINT COMMENT "当日是否上架"
---     ,is_valid BIGINT COMMENT "是否有效SKU"
---     ,onshelved_cnt_7d BIGINT COMMENT "7日内上架天数"
---     ,commission_rate_conf  DECIMAL(10,4) COMMENT "配置商品抽佣率"
---     ,price_old  DECIMAL(10,2) COMMENT "老客价"
---     ,price_new  DECIMAL(10,2) COMMENT "新客价"
---     ,price_loss  DECIMAL(10,2) COMMENT "召回客户价"
--- 	,exposed_store_num BIGINT COMMENT "曝光店铺数"
--- 	,clicked_store_num BIGINT COMMENT "点击店铺数"
--- 	,added_store_num BIGINT COMMENT "加购店铺数"
--- 	,ordered_store_num BIGINT COMMENT "下单店铺数"
--- 	,ordered_goods_num BIGINT COMMENT "下单件数"
--- 	,delivered_goods_amt DECIMAL(10,2) COMMENT "货值"
--- 	,delivered_goods_num BIGINT COMMENT "件数"
+DROP TABLE IF EXISTS changsha_sku_stat_daily_asc;
+CREATE TABLE IF NOT EXISTS changsha_sku_stat_daily_asc (
+	mall_id STRING COMMENT "商城id"
+	,sku_id BIGINT COMMENT "商品ID"
+	,sku_name STRING COMMENT "商品名称"
+	,merchant_id BIGINT COMMENT "商家id"
+	,merchant_name STRING COMMENT "商家名称"
+	,merchant_type STRING COMMENT "商家类型"
+	,updated_video_gap BIGINT COMMENT "最近更新视频天数"
+	,updated_main_pic_gap BIGINT COMMENT "最近更新主图图片天数"
+	,is_updated_merit BIGINT COMMENT "是否卖点更新"
+	,merit STRING COMMENT "商品卖点"
+	,origin_place STRING COMMENT "产地"
+	,product_class STRING COMMENT "等级"
+	,product_spec STRING COMMENT "规格"
+	,product_variety STRING COMMENT "品种"
+	,brand_name STRING COMMENT "品牌"
+	,category_level1_id BIGINT COMMENT "一级类目id"
+	,category_level1_name STRING COMMENT "一级类目名称"
+	,category_level4_id BIGINT COMMENT "四级类目id"
+	,category_level4_name STRING COMMENT "四级类目名称"
+    ,is_onshelved BIGINT COMMENT "当日是否上架"
+    ,is_valid BIGINT COMMENT "是否有效SKU"
+    ,onshelved_cnt_7d BIGINT COMMENT "7日内上架天数"
+    ,commission_rate_conf  DECIMAL(10,4) COMMENT "配置商品抽佣率"
+    ,price_old  DECIMAL(10,2) COMMENT "老客价"
+    ,price_new  DECIMAL(10,2) COMMENT "新客价"
+    ,price_loss  DECIMAL(10,2) COMMENT "召回客户价"
+	,exposed_store_num BIGINT COMMENT "曝光店铺数"
+	,clicked_store_num BIGINT COMMENT "点击店铺数"
+	,added_store_num BIGINT COMMENT "加购店铺数"
+	,ordered_store_num BIGINT COMMENT "下单店铺数"
+	,ordered_goods_num BIGINT COMMENT "下单件数"
+	,delivered_goods_amt DECIMAL(10,2) COMMENT "货值"
+	,delivered_goods_num BIGINT COMMENT "件数"
 
--- 	,commission_amt DECIMAL(10,2) COMMENT "平台抽佣金额"
--- 	,subsidy_amt_plat DECIMAL(10,2) COMMENT "平台补贴费用"
---     ,applied_after_sale_ticket_num_by_asdt BIGINT COMMENT "申请售后单数量"
--- 	,refund_amt_by_asdt_plat DECIMAL(10,2) COMMENT "平台承担售后赔付金额售后提交日"
---     ,applied_after_sale_ticket_num_by_asdt_info STRING COMMENT "售后类型申请数量"
--- 	,applied_store_num_by_asdt BIGINT COMMENT "提交日售后门店数"
--- 	,rebuy_store_num_cdta6d_applied_asdt BIGINT COMMENT "售后七日复购店铺数"
--- 	,rebuy_store_num_cdta2d_applied_asdt BIGINT COMMENT "售后三日复购店铺数"
--- 	,refund_amt DECIMAL(10,2) COMMENT "售后赔付金额"
--- 	,applied_after_sale_goods_num BIGINT COMMENT "售后商品数量"
---     ,refund_amt_by_mct DECIMAL(10,2) COMMENT'商家承担赔付金额'
--- 	,delivered_goods_amt_pg DECIMAL(10,2) COMMENT "件单价"
--- 	,ordered_goods_num_ps DECIMAL(10,1) COMMENT "客均件数"
--- 	,delivered_goods_amt_ps DECIMAL(10,2) COMMENT "客均货值"
+	,commission_amt DECIMAL(10,2) COMMENT "平台抽佣金额"
+	,subsidy_amt_plat DECIMAL(10,2) COMMENT "平台补贴费用"
+    ,applied_after_sale_ticket_num_by_asdt BIGINT COMMENT "申请售后单数量"
+	,refund_amt_by_asdt_plat DECIMAL(10,2) COMMENT "平台承担售后赔付金额售后提交日"
+    ,applied_after_sale_ticket_num_by_asdt_info STRING COMMENT "售后类型申请数量"
+	,applied_store_num_by_asdt BIGINT COMMENT "提交日售后门店数"
+	,rebuy_store_num_cdta6d_applied_asdt BIGINT COMMENT "售后七日复购店铺数"
+	,rebuy_store_num_cdta2d_applied_asdt BIGINT COMMENT "售后三日复购店铺数"
+	,refund_amt DECIMAL(10,2) COMMENT "售后赔付金额"
+	,applied_after_sale_goods_num BIGINT COMMENT "售后商品数量"
+    ,refund_amt_by_mct DECIMAL(10,2) COMMENT'商家承担赔付金额'
+	,delivered_goods_amt_pg DECIMAL(10,2) COMMENT "件单价"
+	,ordered_goods_num_ps DECIMAL(10,1) COMMENT "客均件数"
+	,delivered_goods_amt_ps DECIMAL(10,2) COMMENT "客均货值"
 
--- 	,shared_links_cnt BIGINT COMMENT "BD分享次数"
--- 	,shared_links_store_num BIGINT COMMENT "BD分享触达店铺数"
--- 	,exposed_store_num_by_share_links BIGINT COMMENT "BD分享曝光店铺数"
--- 	,clicked_store_num_by_share_links BIGINT COMMENT "点击BD分享链接店铺数"
--- 	,ordered_store_num_by_share_links BIGINT COMMENT "有BD分享下单的店铺数"
+	,shared_links_cnt BIGINT COMMENT "BD分享次数"
+	,shared_links_store_num BIGINT COMMENT "BD分享触达店铺数"
+	,exposed_store_num_by_share_links BIGINT COMMENT "BD分享曝光店铺数"
+	,clicked_store_num_by_share_links BIGINT COMMENT "点击BD分享链接店铺数"
+	,ordered_store_num_by_share_links BIGINT COMMENT "有BD分享下单的店铺数"
 
--- 	,pool_num_new_store BIGINT COMMENT "新客户池"
--- 	,pool_num_old_store BIGINT COMMENT "老客户池"
--- 	,pool_num_loss_store BIGINT COMMENT "召回客户池"
--- 	,exposed_store_num_old_store BIGINT COMMENT "老客户曝光店铺数"
--- 	,exposed_store_num_loss_store BIGINT COMMENT "召回客户曝光店铺数"
--- 	,exposed_store_num_new_store BIGINT COMMENT "新客户曝光店铺数"
--- 	,ordered_store_num_old_store BIGINT COMMENT "老客户下单店铺数"
--- 	,ordered_store_num_loss_store BIGINT COMMENT "召回客户下单店铺数"
--- 	,ordered_store_num_new_store BIGINT COMMENT "新客户下单店铺数"
--- 	,delivered_goods_amt_new_store_mmf DECIMAL(10,2) COMMENT "商家新客营销费用贡献货值"
--- 	,mct_market_fee_amt_new_store DECIMAL(10,2) COMMENT "商家新客营销费用"
--- 	,delivered_goods_amt_loss_store_mmf DECIMAL(10,2) COMMENT "商家召回客营销费用贡献货值"
--- 	,mct_market_fee_amt_loss_store DECIMAL(10,2) COMMENT "商家召回客户营销费用"
-
--- 	,invalid_sku_type STRING COMMENT "无效SKU类型"
--- 	,potential_sku_type STRING COMMENT "潜力SKU类型"
+	,pool_num_new_store BIGINT COMMENT "新客户池"
+	,pool_num_old_store BIGINT COMMENT "老客户池"
+	,pool_num_loss_store BIGINT COMMENT "召回客户池"
+	,exposed_store_num_old_store BIGINT COMMENT "老客户曝光店铺数"
+	,exposed_store_num_loss_store BIGINT COMMENT "召回客户曝光店铺数"
+	,exposed_store_num_new_store BIGINT COMMENT "新客户曝光店铺数"
+	,ordered_store_num_old_store BIGINT COMMENT "老客户下单店铺数"
+	,ordered_store_num_loss_store BIGINT COMMENT "召回客户下单店铺数"
+	,ordered_store_num_new_store BIGINT COMMENT "新客户下单店铺数"
+	,delivered_goods_amt_new_store_mmf DECIMAL(10,2) COMMENT "商家新客营销费用贡献货值"
+	,mct_market_fee_amt_new_store DECIMAL(10,2) COMMENT "商家新客营销费用"
+	,delivered_goods_amt_loss_store_mmf DECIMAL(10,2) COMMENT "商家召回客营销费用贡献货值"
+	,mct_market_fee_amt_loss_store DECIMAL(10,2) COMMENT "商家召回客户营销费用"
+    ,applied_as_store_num_new_store BIGINT COMMENT "新客户售后门店数"
+    ,rebuy_applied_as_store_num_cdta6d_new_store BIGINT COMMENT "新客户售后近七日复购门店数"
+    ,rebuy_applied_as_store_num_cdta2d_new_store BIGINT COMMENT "新客户售后三日复购门店数"
+    ,applied_as_store_num_loss_store BIGINT COMMENT "召回客户售后门店数"
+    ,rebuy_applied_as_store_num_cdta6d_loss_store BIGINT COMMENT "召回客户售后近七日复购门店数"
+    ,rebuy_applied_as_store_num_cdta2d_loss_store BIGINT COMMENT "召回客户售后三日复购门店数"
+    ,applied_as_store_num_old_store BIGINT COMMENT "老客户售后门店数"
+    ,rebuy_applied_as_store_num_cdta6d_old_store BIGINT COMMENT "老客户售后近七日复购门店数"
+    ,rebuy_applied_as_store_num_cdta2d_old_store BIGINT COMMENT "老客户售后三日复购门店数"
+	,invalid_sku_type STRING COMMENT "无效SKU类型"
+	,potential_sku_type STRING COMMENT "潜力SKU类型"
         
--- 	,store_num_by_ordered_30d_info STRING COMMENT "近30天不同下单频次店铺数"
--- 	,logon_store_num_by_ordered_30d_info STRING COMMENT "近30天不同下单频次登陆店铺数"
--- 	,exposed_store_num_by_ordered_30d_info STRING COMMENT "近30天不同下单频次曝光店铺数"
--- 	,ordered_store_num_by_ordered_30d_info STRING COMMENT "近30天不同下单频次下单店铺数"
--- 	,store_num_by_exposed_30d_info STRING COMMENT "近30天曝光不同频次门店数"
--- 	,logon_store_num_by_exposed_30d_info STRING COMMENT "近30天曝光不同频次登陆门店数"
--- 	,exposed_store_num_by_exposed_30d_info STRING COMMENT "近30天曝光不同频次曝光门店数"
--- 	,ordered_store_num_by_exposed_30d_info STRING COMMENT "近30天曝光不同频次下单门店数"
---     ,delivered_goods_amt_with_pmf  DECIMAL(10,2) COMMENT "平台营销费用产生货值"
---     ,exposed2ordered_store_ratio_new_store_rnk_by_mall_cat4  BIGINT COMMENT "同品类新客户曝光转化率排名"
---     ,ordered_item_ticket_num  BIGINT COMMENT "明细订单数量"
---     ,attach_detail  STRING COMMENT "附件信息"
--- 	,delivered_goods_amt_desc_rnk_by_mall_cat4 BIGINT COMMENT "同商城同品类货值排名"
--- 	,ordered_store_num_desc_rnk_by_mall_cat4 BIGINT COMMENT "同商城同品类下单店铺数排名"
--- 	,ordered_store_ratio_by_cat1 DECIMAL(10,6) COMMENT "日活覆盖率"
--- 	,ordered_store_ratio_by_cat1_rnk BIGINT COMMENT "日活覆盖率排名"
--- 	,exposed_store_num_desc_rnk_by_mall BIGINT COMMENT "曝光门店数降序排名"
--- 	,exposed2ordered_store_ratio DECIMAL(10,6) COMMENT "曝光转化率"
--- 	,exposed2ordered_store_ratio_desc_rnk_by_mall BIGINT COMMENT "曝光转化率降序排名"
--- 	,exposed2ordered_store_ratio_desc_rnk_by_mall_cat4 BIGINT COMMENT "同品类曝光转化率降序排名"
--- 	,exposed2ordered_store_ratio_desc_rnk_by_mall_cat4_mct BIGINT COMMENT "同品类同商家曝光转化率降序排名"
--- 	,exposed2ordered_store_ratio_desc_rnk_by_cat4 BIGINT COMMENT "跨中心仓同品类曝光转化率降序排名"
--- 	,exposed2ordered_store_ratio_desc_rnk_by_non BIGINT COMMENT "跨中心仓曝光转化率降序排名"
+	,store_num_by_ordered_30d_info STRING COMMENT "近30天不同下单频次店铺数"
+	,logon_store_num_by_ordered_30d_info STRING COMMENT "近30天不同下单频次登陆店铺数"
+	,exposed_store_num_by_ordered_30d_info STRING COMMENT "近30天不同下单频次曝光店铺数"
+	,ordered_store_num_by_ordered_30d_info STRING COMMENT "近30天不同下单频次下单店铺数"
+	,store_num_by_exposed_30d_info STRING COMMENT "近30天曝光不同频次门店数"
+	,logon_store_num_by_exposed_30d_info STRING COMMENT "近30天曝光不同频次登陆门店数"
+	,exposed_store_num_by_exposed_30d_info STRING COMMENT "近30天曝光不同频次曝光门店数"
+	,ordered_store_num_by_exposed_30d_info STRING COMMENT "近30天曝光不同频次下单门店数"
+    ,delivered_goods_amt_with_pmf  DECIMAL(10,2) COMMENT "平台营销费用产生货值"
+    ,exposed2ordered_store_ratio_new_store_rnk_by_mall_cat4  BIGINT COMMENT "同品类新客户曝光转化率排名"
+    ,ordered_item_ticket_num  BIGINT COMMENT "明细订单数量"
+    ,attach_detail  STRING COMMENT "附件信息"
+	,delivered_goods_amt_desc_rnk_by_mall_cat4 BIGINT COMMENT "同商城同品类货值排名"
+	,ordered_store_num_desc_rnk_by_mall_cat4 BIGINT COMMENT "同商城同品类下单店铺数排名"
+	,ordered_store_ratio_by_cat1 DECIMAL(10,6) COMMENT "日活覆盖率"
+	,ordered_store_ratio_by_cat1_rnk BIGINT COMMENT "日活覆盖率排名"
+	,exposed_store_num_desc_rnk_by_mall BIGINT COMMENT "曝光门店数降序排名"
+	,exposed2ordered_store_ratio DECIMAL(10,6) COMMENT "曝光转化率"
+	,exposed2ordered_store_ratio_desc_rnk_by_mall BIGINT COMMENT "曝光转化率降序排名"
+	,exposed2ordered_store_ratio_desc_rnk_by_mall_cat4 BIGINT COMMENT "同品类曝光转化率降序排名"
+	,exposed2ordered_store_ratio_desc_rnk_by_mall_cat4_mct BIGINT COMMENT "同品类同商家曝光转化率降序排名"
+	,exposed2ordered_store_ratio_desc_rnk_by_cat4 BIGINT COMMENT "跨中心仓同品类曝光转化率降序排名"
+	,exposed2ordered_store_ratio_desc_rnk_by_non BIGINT COMMENT "跨中心仓曝光转化率降序排名"
 
--- 	,exposed_store_ratio_by_mall DECIMAL(10,6) COMMENT "曝光门店数占商城比例"
--- 	,exposed_store_ratio_by_mall_desc_rnk_by_cat4 BIGINT COMMENT "跨仓曝光门店数占商城比例降序排名"
--- 	,exposed_store_ratio_by_cat4 DECIMAL(10,6) COMMENT "曝光门店数占四级类目比例"
--- 	,exposed_store_ratio_by_cat4_desc_rnk_by_mall_cat4 BIGINT COMMENT "同品类曝光门店数占四级类目比例降序排名"
--- 	,exposed_store_ratio_by_cat4_desc_rnk_by_cat4 BIGINT COMMENT "同品类曝光门店数占四级类目比例降序排名"
--- )PARTITIONED BY 
--- (
---     dt STRING COMMENT "日期"
--- )
--- TBLPROPERTIES('comment'='商品统计');
+	,exposed_store_ratio_by_mall DECIMAL(10,6) COMMENT "曝光门店数占商城比例"
+	,exposed_store_ratio_by_mall_desc_rnk_by_cat4 BIGINT COMMENT "跨仓曝光门店数占商城比例降序排名"
+	,exposed_store_ratio_by_cat4 DECIMAL(10,6) COMMENT "曝光门店数占四级类目比例"
+	,exposed_store_ratio_by_cat4_desc_rnk_by_mall_cat4 BIGINT COMMENT "同品类曝光门店数占四级类目比例降序排名"
+	,exposed_store_ratio_by_cat4_desc_rnk_by_cat4 BIGINT COMMENT "同品类曝光门店数占四级类目比例降序排名"
+)PARTITIONED BY 
+(
+    dt STRING COMMENT "日期"
+)
+TBLPROPERTIES('comment'='商品统计');
 
 
 
@@ -133,6 +141,15 @@ WITH mall AS(
     )
 )
 
+
+
+,dim_dates AS(
+    SELECT
+        t1.dt
+    FROM datawarehouse_max.dim_date_full t1
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+)
 
 
 , dim_sku_prop AS(
@@ -422,10 +439,10 @@ WITH mall AS(
         )) AS delivered_goods_amt_with_pmf -- "平台营销费用产生货值" DECIMAL(10,2)
     FROM datawarehouse_max.dwt_order_order_item_daily_asc t1
     LEFT JOIN datawarehouse_max.dwt_order_clearing_asc t2
-        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6 - 7, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t2.order_item_id = t1.order_item_id
-    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6 - 7, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
         AND t1.status != "CANCEL"
@@ -468,6 +485,8 @@ WITH mall AS(
 
 
 
+
+
 ,css AS (
     SELECT
         DATE(t1.order_create_time) AS dt
@@ -504,7 +523,7 @@ WITH mall AS(
         ,COUNT(DISTINCT t1.after_sale_no) AS applied_after_sale_ticket_num_by_asdt -- "申请售后单数量" BIGINT
     FROM datawarehouse_max.dwt_order_after_sale_daily_asc t1
     
-    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6 - 7, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
         AND t1.status != "CANCEL"
@@ -532,8 +551,6 @@ WITH mall AS(
         ,t1.mall_id
         ,t1.sku_id
 )
-
-
 
 
 
@@ -881,6 +898,93 @@ WITH mall AS(
         ,t1.customer_store_id
 )
 
+
+
+,css_rebuy_tag AS(
+    SELECT
+        t1.dt
+        ,t1.mall_id
+        ,t1.sku_id
+        ,t1.customer_store_id
+        ,NVL(t2.customer_store_tag, "new") AS customer_store_tag
+        ,t1.ordered_cnt_cdta6d
+        ,t1.ordered_cnt_cdta2d
+    FROM (
+        SELECT
+            t1.dt
+            ,t1.mall_id
+            ,t1.sku_id
+            ,t1.customer_store_id
+            ,COUNT(DISTINCT IF(
+                t2.dt BETWEEN DATEADD(DATE(t1.dt), 0, "dd")
+                    AND DATEADD(DATE(t1.dt), 6, "dd")
+                , t2.dt, NULL
+            )) AS ordered_cnt_cdta6d
+            ,COUNT(DISTINCT IF(
+                t2.dt BETWEEN DATEADD(DATE(t1.dt), 0, "dd")
+                    AND DATEADD(DATE(t1.dt), 2, "dd")
+                , t2.dt, NULL
+            )) AS ordered_cnt_cdta2d
+        FROM css_temp_asdt t1
+        LEFT JOIN subsidies_temp t2
+            ON t2.mall_id = t1.mall_id
+            AND t2.customer_store_id = t1.customer_store_id
+            AND t2.sku_id = t1.sku_id
+            AND t2.dt BETWEEN DATEADD(DATE(t1.dt), 0, "dd")
+                AND DATEADD(DATE(t1.dt), 6, "dd")
+
+        GROUP BY t1.dt
+            ,t1.mall_id
+            ,t1.sku_id
+            ,t1.customer_store_id
+    ) t1
+    LEFT JOIN store_tag t2
+        ON t2.dt = t1.dt
+        AND t2.mall_id = t1.mall_id
+        AND t2.sku_id = t1.sku_id
+        AND t2.customer_store_id = t1.customer_store_id
+)
+
+
+,css_tag_rebuy AS(
+    SELECT
+        t1.dt
+        ,t1.mall_id
+        ,t1.sku_id
+        ,COUNT(DISTINCT IF(
+            INSTR(t1.customer_store_tag,"new")>0, t1.customer_store_id, NULL
+        )) AS applied_as_store_num_new_store -- "新客户售后门店数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(t1.customer_store_tag,"new")>0 AND t1.ordered_cnt_cdta6d>0, t1.customer_store_id, NULL
+        )) AS rebuy_applied_as_store_num_cdta6d_new_store -- "新客户售后近七日复购门店数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(t1.customer_store_tag,"new")>0 AND t1.ordered_cnt_cdta2d>0, t1.customer_store_id, NULL
+        )) AS rebuy_applied_as_store_num_cdta2d_new_store -- "新客户售后三日复购门店数" BIGINT
+        
+        ,COUNT(DISTINCT IF(
+            INSTR(t1.customer_store_tag,"loss")>0, t1.customer_store_id, NULL
+        )) AS applied_as_store_num_loss_store -- "召回客户售后门店数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(t1.customer_store_tag,"loss")>0 AND t1.ordered_cnt_cdta6d>0, t1.customer_store_id, NULL
+        )) AS rebuy_applied_as_store_num_cdta6d_loss_store -- "召回客户售后近七日复购门店数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(t1.customer_store_tag,"loss")>0 AND t1.ordered_cnt_cdta2d>0, t1.customer_store_id, NULL
+        )) AS rebuy_applied_as_store_num_cdta2d_loss_store -- "召回客户售后三日复购门店数" BIGINT
+
+        ,COUNT(DISTINCT IF(
+            INSTR(t1.customer_store_tag,"old")>0, t1.customer_store_id, NULL
+        )) AS applied_as_store_num_old_store -- "老客户售后门店数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(t1.customer_store_tag,"old")>0 AND t1.ordered_cnt_cdta6d>0, t1.customer_store_id, NULL
+        )) AS rebuy_applied_as_store_num_cdta6d_old_store -- "老客户售后近七日复购门店数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(t1.customer_store_tag,"old")>0 AND t1.ordered_cnt_cdta2d>0, t1.customer_store_id, NULL
+        )) AS rebuy_applied_as_store_num_cdta2d_old_store -- "老客户售后三日复购门店数" BIGINT    
+    FROM css_tag t1
+    GROUP BY  t1.dt
+        ,t1.mall_id
+        ,t1.sku_id
+)
 
 , base AS(
     SELECT
@@ -1302,6 +1406,15 @@ SELECT
 	,t1.delivered_goods_amt_loss_store_mmf -- "商家召回客营销费用贡献货值" DECIMAL(10,2)
 	,t1.mct_market_fee_amt_loss_store -- "商家召回客户营销费用" DECIMAL(10,2)
 
+    ,t4.applied_as_store_num_new_store -- "新客户售后门店数" BIGINT
+    ,t4.rebuy_applied_as_store_num_cdta6d_new_store -- "新客户售后近七日复购门店数" BIGINT
+    ,t4.rebuy_applied_as_store_num_cdta2d_new_store -- "新客户售后三日复购门店数" BIGINT
+    ,t4.applied_as_store_num_loss_store -- "召回客户售后门店数" BIGINT
+    ,t4.rebuy_applied_as_store_num_cdta6d_loss_store -- "召回客户售后近七日复购门店数" BIGINT
+    ,t4.rebuy_applied_as_store_num_cdta2d_loss_store -- "召回客户售后三日复购门店数" BIGINT
+    ,t4.applied_as_store_num_old_store -- "老客户售后门店数" BIGINT
+    ,t4.rebuy_applied_as_store_num_cdta6d_old_store -- "老客户售后近七日复购门店数" BIGINT
+    ,t4.rebuy_applied_as_store_num_cdta2d_old_store -- "老客户售后三日复购门店数" BIGINT
 	,t1.invalid_sku_type -- "无效SKU类型" STRING
 	,t1.potential_sku_type -- "潜力SKU类型" STRING
     ,t1.store_num_by_ordered_30d_info -- "近30天不同下单频次店铺数" STRING
@@ -1358,6 +1471,11 @@ LEFT JOIN datawarehouse_max.ads_changsha_sku_dashboard_daily_asc t3
     AND t3.dt = t1.dt
     AND t3.goods_id = t1.sku_id
     AND t1.mall_id = 871
+
+LEFT JOIN css_tag_rebuy t4
+    ON t4.dt = t1.dt
+    AND t4.mall_id = t1.mall_id
+    AND t4.sku_id = t1.sku_id
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
     AND t1.mall_id = 871
