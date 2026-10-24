@@ -11,6 +11,7 @@
 -- 	,category_level4_name STRING COMMENT "四级类目名称"
 -- 	,customer_store_id BIGINT COMMENT "店铺ID"
 -- 	,customer_store_name STRING COMMENT "店铺名称"
+--     ,store_type STRING COMMENT "店铺类型"
 -- 	,province_id BIGINT COMMENT "省ID"
 -- 	,province_name STRING COMMENT "省名称"
 -- 	,city_id BIGINT COMMENT "市ID"
@@ -111,6 +112,7 @@ WITH mall AS(
         ,t1.mall_id
         ,t1.customer_store_id
         ,t1.customer_store_name
+        ,t1.store_type_desc AS store_type
         ,t1.province_id
         ,t1.province_name
         ,t1.city_id
@@ -419,6 +421,7 @@ WITH mall AS(
         ,t4.category_level4_name -- "四级类目名称" STRING
         ,t1.customer_store_id -- "店铺ID" BIGINT
         ,t5.customer_store_name -- "店铺名称" STRING
+        ,t5.store_type -- "门店类型" STRING
         ,t5.province_id -- "省ID" BIGINT
         ,t5.province_name -- "省名称" STRING
         ,t5.city_id -- "市ID" BIGINT
@@ -479,6 +482,7 @@ SELECT
 	,t1.category_level4_name -- "四级类目名称" STRING
 	,t1.customer_store_id -- "店铺ID" BIGINT
 	,t1.customer_store_name -- "店铺名称" STRING
+    ,t1.store_type -- "门店类型" STRING
 	,t1.province_id -- "省ID" BIGINT
 	,t1.province_name -- "省名称" STRING
 	,t1.city_id -- "市ID" BIGINT
@@ -519,6 +523,7 @@ SELECT
 	,t1.category_level4_name -- "四级类目名称" STRING
 	,t1.customer_store_id -- "店铺ID" BIGINT
 	,t1.customer_store_name -- "店铺名称" STRING
+    ,t1.store_type -- "门店类型" STRING
 	,t1.province_id -- "省ID" BIGINT
 	,t1.province_name -- "省名称" STRING
 	,t1.city_id -- "市ID" BIGINT
@@ -562,6 +567,7 @@ SELECT
 	,t1.category_level4_name -- "四级类目名称" STRING
 	,t1.customer_store_id -- "店铺ID" BIGINT
 	,t1.customer_store_name -- "店铺名称" STRING
+    ,t1.store_type -- "门店类型" STRING
 	,t1.province_id -- "省ID" BIGINT
 	,t1.province_name -- "省名称" STRING
 	,t1.city_id -- "市ID" BIGINT
