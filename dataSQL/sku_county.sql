@@ -40,7 +40,7 @@ SKU区县
 -- 	,logon_store_num_by_county BIGINT COMMENT "区县登录店铺数"
 -- 	,exposed_store_num_by_county BIGINT COMMENT "区县曝光店铺数"
 -- 	,ordered_store_num_by_county BIGINT COMMENT "区县下单门店数"
--- )PARTITIONED BY 
+-- )PARTITIONED BY f
 -- (
 --     dt STRING COMMENT "日期"
 -- )
@@ -50,7 +50,24 @@ SKU区县
 
 
 
-WITH store_tag AS (
+WITH mall AS(
+    SELECT
+        t1.mall_id
+        ,t1.mall
+    FROM datawarehouse_max.dim_mall_full t1
+    WHERE t1.mall IN (
+        "标果南昌", 
+        "标果嘉兴", 
+        "标果成都", 
+        "标果东莞", 
+        "标果贵阳", 
+        "标果郑州", 
+        "标果西安",
+        "标果长沙"
+    )
+)
+
+,store_tag AS (
     SELECT
         t1.dt
         ,t1.mall_id
@@ -117,12 +134,12 @@ WITH store_tag AS (
         ,t1.province_id
         ,t1.province_name
         ,t1.city_id
-        ,t1.city_name
+        ,REGEXP_REPLACE(t1.city_name, "\\d", "") AS city_name -- "市名称" STRING
         ,t1.county_id
         ,t1.county_name
         ,t2.is_login
         ,t1.use_status
-        ,t2.county_model
+        
     FROM datawarehouse_max.dim_store_daily_full t1
     LEFT JOIN datawarehouse_max.ads_store_mall_store_central_warehouse_fruit_features_daily_asc  t2
         ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
@@ -148,7 +165,7 @@ WITH store_tag AS (
         ,t3.province_id
         ,t3.province_name
         ,t3.city_id
-        ,t3.city_name
+        ,REGEXP_REPLACE(t3.city_name, "\\d", "") AS city_name -- "市名称" STRING
         ,t3.county_id
         ,t3.county_name
         ,t3.is_login
@@ -157,13 +174,7 @@ WITH store_tag AS (
         ,t1.exposed_cnt
         ,t1.ordered_goods_num
         ,t1.delivered_goods_amt
-        ,CASE
-            WHEN
-                INSTR(t3.county_model, "自营") > 0
-            THEN "自营区域"
-            ELSE "代理区域"
-        END AS operation_type_county -- "区县运营类型" STRING
-        ,NVL(t2.customer_store_tag, "new_no_ordere") AS customer_store_tag
+        ,NVL(t2.customer_store_tag, "new_no_order") AS customer_store_tag
         
     FROM datawarehouse_max.dws_store_mall_store_sku_base_daily_asc t1
     LEFT JOIN store_tag t2
@@ -175,6 +186,7 @@ WITH store_tag AS (
         ON t3.dt = t1.dt
         AND t3.mall_id = t1.mall_id
         AND t3.customer_store_id = t1.customer_store_id
+    
 
 
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
@@ -189,70 +201,96 @@ WITH store_tag AS (
 
 ,base AS(
     SELECT
-        t1.dt
-        ,t1.mall_id
-        ,t1.sku_id
-        ,t1.province_id
-        ,t1.province_name
-        ,t1.city_id
-        ,t1.city_name
-        ,t1.county_id
-        ,t1.county_name
-        ,IF(
-            INSTR(WM_CONCAT(
-                DISTINCT "-"
-                ,t1.operation_type_county
-            ), "自营")>0, "自营区域", "代理区域"
-        ) AS operation_type_county
-        ,SUM(t1.delivered_goods_amt) AS delivered_goods_amt
-    
-        ,COUNT(DISTINCT IF(
-            INSTR(NVL(t1.customer_store_tag, "new"), "new")>0, t1.customer_store_id, NULL
-        )) AS pool_num_new_store
-        ,COUNT(DISTINCT IF(
-            INSTR(NVL(t1.customer_store_tag, "new"), "old")>0, t1.customer_store_id, NULL
-        )) AS pool_num_old_store
-        ,COUNT(DISTINCT IF(
-            INSTR(NVL(t1.customer_store_tag, "new"), "loss")>0, t1.customer_store_id, NULL
-        )) AS pool_num_loss_store
-
-
+        t1.*
+        ,NVL(t2.business_model, "自营") || "区域" AS operation_type_county -- "区县运营类型" STRING
+    FROM (
+        SELECT
+            t1.dt
+            ,t1.mall_id
+            ,t1.sku_id
+            ,t1.province_id
+            ,t1.province_name
+            ,t1.city_id
+            ,t1.city_name
+            ,t1.county_id
+            ,t1.county_name
+            ,SUM(t1.delivered_goods_amt) AS delivered_goods_amt
         
-        ,COUNT(DISTINCT IF(
-            t1.exposed_cnt>0 , t1.customer_store_id, NULL
-        )) AS exposed_store_num
-        ,COUNT(DISTINCT IF(
-            t1.exposed_cnt>0 AND INSTR(NVL(t1.customer_store_tag, "new"), "new")>0, t1.customer_store_id, NULL
-        )) AS exposed_store_num_new_store
-        ,COUNT(DISTINCT IF(
-            t1.exposed_cnt>0 AND INSTR(NVL(t1.customer_store_tag, "new"), "old")>0, t1.customer_store_id, NULL
-        )) AS exposed_store_num_old_store
-        ,COUNT(DISTINCT IF(
-            t1.exposed_cnt>0 AND INSTR(NVL(t1.customer_store_tag, "new"), "loss")>0, t1.customer_store_id, NULL
-        )) AS exposed_store_num_loss_store
+            ,COUNT(DISTINCT IF(
+                INSTR(NVL(t1.customer_store_tag, "new"), "new")>0, t1.customer_store_id, NULL
+            )) AS pool_num_new_store
+            ,COUNT(DISTINCT IF(
+                INSTR(NVL(t1.customer_store_tag, "new"), "old")>0, t1.customer_store_id, NULL
+            )) AS pool_num_old_store
+            ,COUNT(DISTINCT IF(
+                INSTR(NVL(t1.customer_store_tag, "new"), "loss")>0, t1.customer_store_id, NULL
+            )) AS pool_num_loss_store
 
-        ,COUNT(DISTINCT IF(t1.ordered_goods_num>0, t1.customer_store_id, NULL )) AS ordered_store_num
-        ,COUNT(DISTINCT IF(
-            t1.ordered_goods_num>0 AND INSTR(NVL(t1.customer_store_tag, "new"), "new")>0, t1.customer_store_id, NULL
-        )) AS ordered_store_num_new_store
-        ,COUNT(DISTINCT IF(
-            t1.ordered_goods_num>0 AND INSTR(NVL(t1.customer_store_tag, "new"), "old")>0, t1.customer_store_id, NULL
-        )) AS ordered_store_num_old_store
-        ,COUNT(DISTINCT IF(
-            t1.ordered_goods_num>0 AND INSTR(NVL(t1.customer_store_tag, "new"), "loss")>0, t1.customer_store_id, NULL
-        )) AS ordered_store_num_loss_store
-    FROM temp t1
-    
-    GROUP BY t1.dt
-        ,t1.mall_id
-        ,t1.sku_id
-        ,t1.province_id
-        ,t1.province_name
-        ,t1.city_id
-        ,t1.city_name
-        ,t1.county_id
-        ,t1.county_name
 
+            
+            ,COUNT(DISTINCT IF(
+                t1.exposed_cnt>0 , t1.customer_store_id, NULL
+            )) AS exposed_store_num
+            ,COUNT(DISTINCT IF(
+                t1.exposed_cnt>0 AND INSTR(NVL(t1.customer_store_tag, "new"), "new")>0, t1.customer_store_id, NULL
+            )) AS exposed_store_num_new_store
+            ,COUNT(DISTINCT IF(
+                t1.exposed_cnt>0 AND INSTR(NVL(t1.customer_store_tag, "new"), "old")>0, t1.customer_store_id, NULL
+            )) AS exposed_store_num_old_store
+            ,COUNT(DISTINCT IF(
+                t1.exposed_cnt>0 AND INSTR(NVL(t1.customer_store_tag, "new"), "loss")>0, t1.customer_store_id, NULL
+            )) AS exposed_store_num_loss_store
+
+            ,COUNT(DISTINCT IF(t1.ordered_goods_num>0, t1.customer_store_id, NULL )) AS ordered_store_num
+            ,COUNT(DISTINCT IF(
+                t1.ordered_goods_num>0 AND INSTR(NVL(t1.customer_store_tag, "new"), "new")>0, t1.customer_store_id, NULL
+            )) AS ordered_store_num_new_store
+            ,COUNT(DISTINCT IF(
+                t1.ordered_goods_num>0 AND INSTR(NVL(t1.customer_store_tag, "new"), "old")>0, t1.customer_store_id, NULL
+            )) AS ordered_store_num_old_store
+            ,COUNT(DISTINCT IF(
+                t1.ordered_goods_num>0 AND INSTR(NVL(t1.customer_store_tag, "new"), "loss")>0, t1.customer_store_id, NULL
+            )) AS ordered_store_num_loss_store
+        FROM temp t1
+        
+        GROUP BY t1.dt
+            ,t1.mall_id
+            ,t1.sku_id
+            ,t1.province_id
+            ,t1.province_name
+            ,t1.city_id
+            ,t1.city_name
+            ,t1.county_id
+            ,t1.county_name
+    ) t1
+    LEFT JOIN (
+        SELECT
+            t1.dt
+            ,t1.mall_name
+            ,t0.mall_id
+            ,t1.province_name
+            ,t1.city_name
+            ,t1.county_name
+            ,t1.business_model
+        FROM  datawarehouse_max.ods_feishu_mall_county_business_model_info_daily_full  t1
+        JOIN mall t0
+            ON t0.mall = t1.mall_name
+        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+            AND t1.dt BETWEEN t1.start_data AND t1.end_data
+        GROUP BY t1.dt
+            ,t1.mall_name
+            ,t0.mall_id
+            ,t1.province_name
+            ,t1.city_name
+            ,t1.county_name
+            ,t1.business_model
+    ) t2
+        ON t2.dt = t1.dt
+        AND t1.mall_id = t2.mall_id
+        AND t2.province_name = t1.province_name
+        AND t2.city_name = t1.city_name
+        AND t2.county_name = t1.county_name
 )
 
 
@@ -299,6 +337,7 @@ SELECT
     ,t3.ordered_store_num_by_county -- "区县下单门店数" BIGINT
     ,t1.dt -- "日期" STRING
 FROM base t1
+
 JOIN dim_sku t01
     ON t01.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
