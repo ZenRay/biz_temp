@@ -148,7 +148,7 @@ WITH mall AS(
         )) AS delivered_goods_amt_full_mct
         ,SUM(IF(
             NVL(t1.platform_market_amt_full_reduce_coupon, 0) + NVL(t1.platform_market_amt_single_goods_coupon,0) 
-                + NVL(t2.platform_subsidy_amount, 0) > 0, t1.delivered_goods_amt, 0
+                + NVL(t2.platform_subsidy_amount, 0) > 0, t1.deliveried_goods_amt, 0
         )) AS delivered_goods_amt_with_pmf
     FROM datawarehouse_max.dwt_order_order_item_daily_asc t1
     LEFT JOIN datawarehouse_max.dwt_order_clearing_asc t2
