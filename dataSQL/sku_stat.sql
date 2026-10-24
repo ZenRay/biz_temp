@@ -1,4 +1,5 @@
 
+
 /*
 商品统计
 */
@@ -415,6 +416,12 @@ WITH mall AS(
         ,SUM(IF(
             t2.platform_subsidy_amount>0, t1.deliveried_goods_amt, 0
         )) AS delivered_goods_amt_with_psmf -- "补贴产生货值" DECIMAL(10,2)
+
+        -- 营销费用产生货值
+        ,SUM(IF(
+            NVL(t1.platform_market_amt_full_reduce_coupon, 0) + NVL(t1.platform_market_amt_single_goods_coupon,0)
+                + NVL(t2.platform_subsidy_amount, 0)>0, t1.delivered_goods_amt, 0
+        )) AS delivered_goods_amt_with_pmf -- "平台营销费用产生货值" DECIMAL(10,2)
     FROM datawarehouse_max.dwt_order_order_item_daily_asc t1
     LEFT JOIN datawarehouse_max.dwt_order_clearing_asc t2
         ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
@@ -596,22 +603,6 @@ WITH mall AS(
 
         
         ,t1.after_sale_no
-        -- ,DECODE(
-        --     t1.after_sale_type
-        --     ,"BE_SHORT_OF_WEIGHT", "缺斤少两"
-        --     ,"QUALITY_ISSUES", "品质问题"
-        --     ,"APPEARANCE_PROBLEM", "品相问题"
-        --     ,"CARGO_WRONG_EDITION", "货不对版"
-        --     ,"FRESHNESS_PROBLEM", "鲜度问题"
-        --     ,"MATURITY_PROBLEM", "熟度问题"
-        --     ,"SHORTAGE", "缺货"
-        --     ,"LOGISTIC_PROBLEM", "物流问题"
-        --     ,"PURCHASE_AGREE_PAY_CHANNEL", "免赔"
-        --     ,"TASTE_PROBLEMS", "口感问题"
-        --     ,"INSPECTION_REJECTION", "现场拒收"
-        --     ,"OTHERS_MILK", "奶品问题"
-        --     ,t1.after_sale_type
-        -- ) AS after_sale_type -- `判责售后类型`
         ,t1.after_sale_type_problem_title
     FROM datawarehouse_max.dwt_order_after_sale_daily_asc t1
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
@@ -932,7 +923,7 @@ WITH mall AS(
             NVL(t4.plat_coupon_market_fee, 0) + NVL(t4.plat_subsidy_amount, 0), 2
         ) AS subsidy_amt_plat -- "平台补贴费用" DECIMAL(10,2)
         ,ROUND(
-            NVL(t4.delivered_goods_amt_with_pcmf, 0) + NVL(t4.delivered_goods_amt_with_psmf, 0), 2
+            t4.delivered_goods_amt_with_pmf, 2
         ) AS delivered_goods_amt_with_pmf -- "平台营销费用产生货值" DECIMAL(10,2)
         ,t4.ordered_item_ticket_num -- "明细订单数量" BIGINT
         ,t5.applied_after_sale_ticket_num_by_asdt -- "申请售后单数量" BIGINT

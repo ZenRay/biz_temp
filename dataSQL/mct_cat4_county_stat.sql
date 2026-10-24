@@ -1,3 +1,4 @@
+
 /*
 商家四级类目区县统计
 */
@@ -23,6 +24,17 @@
 -- 	,clicked_store_num BIGINT COMMENT "点击店铺数"
 -- 	,ordered_store_num BIGINT COMMENT "下单店铺数"
 -- 	,delivered_goods_amt DECIMAL(10,2) COMMENT "货值"
+--     ,pool_store_num_new_store BIGINT COMMENT "新客户池"
+--     ,pool_store_num_old_store BIGINT COMMENT "老客户池"
+--     ,pool_store_num_loss_store BIGINT COMMENT "召回客户池"
+--     ,exposed_store_num_new_store  BIGINT COMMENT "新客户曝光店铺数"
+--     ,clicked_store_num_new_store  BIGINT COMMENT "新客户点击店铺数"
+--     ,ordered_store_num_new_store  BIGINT COMMENT "新客户下单店铺数"
+--     ,exposed_store_num_old_store  BIGINT COMMENT "老客户曝光店铺数"
+--     ,clicked_store_num_old_store  BIGINT COMMENT "老客户点击店铺数"
+--     ,ordered_store_num_old_store  BIGINT COMMENT "老客户下单店铺数"
+--     ,exposed_store_num_loss_store  BIGINT COMMENT "召回客户曝光店铺数"
+--     ,ordered_store_num_loss_store  BIGINT COMMENT "召回客户下单店铺数"
 -- )PARTITIONED BY 
 -- (
 --     dt STRING COMMENT "日期"
@@ -98,6 +110,38 @@ WITH mall AS(
         AND t1.mall_id = 871
 )
 
+
+
+,store_tag AS(
+    SELECT
+        t1.dt
+        ,t1.mall_id
+        ,t1.merchant_id
+        ,t1.category_level4_id
+        ,t02.category_level1_id
+        ,t1.customer_store_id
+        ,t2.province_id
+        ,t2.city_id
+        ,t2.county_id
+        ,t1.customer_store_tag
+    FROM datawarehouse_max.dws_pub_mall_merchant_cate4_customer_tag_daily_asc t1
+    LEFT JOIN datawarehouse_max.dim_category_daily_full t02
+        ON t02.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND t02.dt = t1.dt
+        AND t02.back_category_id = t1.category_level4_id
+        AND t02.source_type= "OLD"
+    LEFT JOIN dim_store t2
+        ON t2.dt = t1.dt
+        AND t2.mall_id = t1.mall_id
+        AND t2.customer_store_id = t1.customer_store_id
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND t1.mall_id = 871
+)
+
+
+
 ,temp AS (
     SELECT
         t1.dt
@@ -124,6 +168,36 @@ WITH mall AS(
             t1.ordered_goods_num>0, t1.customer_store_id, NULL
         )) AS ordered_store_num -- "下单店铺数" BIGINT
         ,SUM(t1.delivered_goods_amt) AS delivered_goods_amt -- "货值" DECIMAL(10,2)
+        
+        ,COUNT(DISTINCT IF(
+            t1.exposed_cnt>0 AND INSTR(t1.customer_store_tag, "new")>0, t1.customer_store_id, NULL
+        )) AS exposed_store_num_new_store -- "新客户曝光店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            t1.clicked_cnt>0 AND INSTR(t1.customer_store_tag, "new")>0, t1.customer_store_id, NULL
+        )) AS clicked_store_num_new_store -- "新客户点击店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            t1.ordered_goods_num>0 AND INSTR(t1.customer_store_tag, "new")>0, t1.customer_store_id, NULL
+        )) AS ordered_store_num_new_store -- "新客户下单店铺数" BIGINT
+
+        ,COUNT(DISTINCT IF(
+            t1.exposed_cnt>0 AND INSTR(t1.customer_store_tag, "old")>0, t1.customer_store_id, NULL
+        )) AS exposed_store_num_old_store -- "老客户曝光店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            t1.clicked_cnt>0 AND INSTR(t1.customer_store_tag, "old")>0, t1.customer_store_id, NULL
+        )) AS clicked_store_num_old_store -- "老客户点击店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            t1.ordered_goods_num>0 AND INSTR(t1.customer_store_tag, "old")>0, t1.customer_store_id, NULL
+        )) AS ordered_store_num_old_store -- "老客户下单店铺数" BIGINT
+
+        ,COUNT(DISTINCT IF(
+            t1.exposed_cnt>0 AND INSTR(t1.customer_store_tag, "loss")>0, t1.customer_store_id, NULL
+        )) AS exposed_store_num_loss_store -- "召回客户曝光店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            t1.clicked_cnt>0 AND INSTR(t1.customer_store_tag, "loss")>0, t1.customer_store_id, NULL
+        )) AS clicked_store_num_loss_store -- "召回客户点击店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            t1.ordered_goods_num>0 AND INSTR(t1.customer_store_tag, "loss")>0, t1.customer_store_id, NULL
+        )) AS ordered_store_num_loss_store -- "召回客户下单店铺数" BIGINT
     FROM(
         SELECT
             t1.dt
@@ -141,7 +215,7 @@ WITH mall AS(
             ,t3.city_name
             ,t3.county_id
             ,t3.county_name
-
+            ,NVL(t4.customer_store_tag, "new") AS customer_store_tag
             ,t1.ordered_goods_num
             
             ,t1.delivered_goods_amt
@@ -160,7 +234,13 @@ WITH mall AS(
             ON t3.dt = t1.dt
             AND t3.mall_id = t1.mall_id
             AND t3.customer_store_id = t1.customer_store_id
-        
+        LEFT JOIN store_tag t4
+            ON t4.dt = t1.dt
+            AND t4.mall_id = t1.mall_id
+            AND t4.customer_store_id = t1.customer_store_id
+            AND t4.category_level1_id = t1.category_level1_id
+            AND t4.category_level4_id = t1.category_level4_id
+            AND t4.merchant_id = t2.merchant_id
 
         WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
@@ -186,7 +266,6 @@ WITH mall AS(
 
 
 
-
 ,base AS(
     SELECT
         t1.mall_id -- "商城ID" BIGINT
@@ -207,6 +286,17 @@ WITH mall AS(
         ,t1.clicked_store_num -- "点击店铺数" BIGINT
         ,t1.ordered_store_num -- "下单店铺数" BIGINT
         ,t1.delivered_goods_amt -- "货值" DECIMAL(10,2)
+        ,t3.pool_store_num_new_store -- "新客户池" BIGINT
+        ,t3.pool_store_num_old_store -- "老客户池" BIGINT
+        ,t3.pool_store_num_loss_store -- "召回客户池" BIGINT
+        ,t1.exposed_store_num_new_store -- "新客户曝光店铺数" BIGINT
+        ,t1.clicked_store_num_new_store -- "新客户点击店铺数" BIGINT
+        ,t1.ordered_store_num_new_store -- "新客户下单店铺数" BIGINT
+        ,t1.exposed_store_num_old_store -- "老客户曝光店铺数" BIGINT
+        ,t1.clicked_store_num_old_store -- "老客户点击店铺数" BIGINT
+        ,t1.ordered_store_num_old_store -- "老客户下单店铺数" BIGINT
+        ,t1.exposed_store_num_loss_store -- "召回客户曝光店铺数" BIGINT
+        ,t1.ordered_store_num_loss_store -- "召回客户下单店铺数" BIGINT
         ,t1.dt
     FROM temp t1
     LEFT JOIN (
@@ -237,6 +327,45 @@ WITH mall AS(
         AND t2.province_name = t1.province_name
         AND t2.city_name = t1.city_name
         AND t2.county_name = t1.county_name
+    
+    LEFT JOIN (
+        SELECT
+            t1.dt
+            ,t1.mall_id
+            ,t1.merchant_id
+            ,t1.category_level1_id
+            ,t1.category_level4_id
+            ,t1.province_id
+            ,t1.city_id
+            ,t1.county_id
+            ,COUNT(DISTINCT IF(
+                INSTR(t1.customer_store_tag, "new") >0, t1.customer_store_id, NULL
+            )) AS pool_store_num_new_store -- "新客户池" BIGINT
+            ,COUNT(DISTINCT IF(
+                INSTR(t1.customer_store_tag, "old") >0, t1.customer_store_id, NULL
+            )) AS pool_store_num_old_store -- "老客户池" BIGINT
+            ,COUNT(DISTINCT IF(
+                INSTR(t1.customer_store_tag, "loss") >0, t1.customer_store_id, NULL
+            )) AS pool_store_num_loss_store -- "召回客户池" BIGINT
+        FROM store_tag t1
+
+        GROUP BY t1.dt
+            ,t1.mall_id
+            ,t1.merchant_id
+            ,t1.category_level1_id
+            ,t1.category_level4_id
+            ,t1.province_id
+            ,t1.city_id
+            ,t1.county_id
+    ) t3
+        ON t3.dt = t1.dt
+        AND t3.mall_id = t1.mall_id
+        AND t3.province_id = t1.province_id
+        AND t3.city_id = t1.city_id
+        AND t3.county_id = t1.county_id
+        AND  t3.merchant_id = t1.merchant_id
+        AND t3.category_level1_id = t1.category_level1_id
+        AND t3.category_level4_id = t1.category_level4_id
 
 )
 
@@ -262,6 +391,17 @@ SELECT
 	,t1.clicked_store_num -- "点击店铺数" BIGINT
 	,t1.ordered_store_num -- "下单店铺数" BIGINT
 	,t1.delivered_goods_amt -- "货值" DECIMAL(10,2)
+    ,t1.pool_store_num_new_store -- "新客户池" BIGINT
+    ,t1.pool_store_num_old_store -- "老客户池" BIGINT
+    ,t1.pool_store_num_loss_store -- "召回客户池" BIGINT
+    ,t1.exposed_store_num_new_store -- "新客户曝光店铺数" BIGINT
+    ,t1.clicked_store_num_new_store -- "新客户点击店铺数" BIGINT
+    ,t1.ordered_store_num_new_store -- "新客户下单店铺数" BIGINT
+    ,t1.exposed_store_num_old_store -- "老客户曝光店铺数" BIGINT
+    ,t1.clicked_store_num_old_store -- "老客户点击店铺数" BIGINT
+    ,t1.ordered_store_num_old_store -- "老客户下单店铺数" BIGINT
+    ,t1.exposed_store_num_loss_store -- "召回客户曝光店铺数" BIGINT
+    ,t1.ordered_store_num_loss_store -- "召回客户下单店铺数" BIGINT
     ,t1.dt -- "日期" STRING
 FROM base t1
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
