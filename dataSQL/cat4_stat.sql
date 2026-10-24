@@ -1,3 +1,4 @@
+
 /*
 四级类目统计
 */
@@ -13,6 +14,7 @@
 -- 	,category_level4_name STRING COMMENT "四级类目名称"
 --     ,onshelved_mct_num  BIGINT COMMENT "上架商品商家数量"
 --     ,onshelved_mct_num_full_mct  BIGINT COMMENT "上架商品商家数量"
+--     ,delivered_goods_amt_with_pmf DECIMAL(10,2) COMMENT "平台营销费用产生货值"
 --     ,delivered_goods_amt_full_mct  DECIMAL(10,2) COMMENT "全品类商家货值"
 -- 	,exposed_store_num BIGINT COMMENT "曝光店铺数"
 -- 	,clicked_store_num BIGINT COMMENT "点击店铺数"
@@ -144,6 +146,10 @@ WITH mall AS(
         ,SUM(IF(
             INSTR(t3.merchant_name, "老顽童") + INSTR(t3.merchant_name, "阿玲")>0, t1.deliveried_goods_amt, 0
         )) AS delivered_goods_amt_full_mct
+        ,SUM(IF(
+            NVL(t1.platform_market_amt_full_reduce_coupon, 0) + NVL(t1.platform_market_amt_single_goods_coupon,0) 
+                + NVL(t2.platform_subsidy_amount, 0) > 0, t1.delivered_goods_amt, 0
+        )) AS delivered_goods_amt_with_pmf
     FROM datawarehouse_max.dwt_order_order_item_daily_asc t1
     LEFT JOIN datawarehouse_max.dwt_order_clearing_asc t2
         ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
@@ -505,6 +511,7 @@ WITH mall AS(
         ,ROUND(
             NVL(t4.plat_coupon_market_fee, 0) + NVL(t4.plat_subsidy_amount, 0), 2
         ) AS subsidy_amt_plat -- "平台补贴费用" DECIMAL(10,2)
+        ,t4.delivered_goods_amt_with_pmf -- "平台营销费用产生货值" DECIMAL(10,2)
         ,t4.delivered_goods_amt_full_mct -- "全品类商家货值" DECIMAL(10,2)
         ,NVL(t5.refund_amt_by_asdt_plat, 0) AS refund_amt_by_asdt_plat -- "平台承担售后赔付金额售后提交日" DECIMAL(10,2)
         ,t5.applied_store_num_by_asdt -- "提交日售后门店数" BIGINT
@@ -641,6 +648,7 @@ SELECT
 	,t1.category_level4_name -- "四级类目名称" STRING
     ,t1.onshelved_mct_num -- "上架商品商家数量" BIGINT
     ,t1.onshelved_mct_num_full_mct -- "上架商品商家数量" BIGINT
+    ,t1.delivered_goods_amt_with_pmf -- "平台营销费用产生货值" DECIMAL(10,2)
     ,t1.delivered_goods_amt_full_mct -- "全品类商家货值" DECIMAL(10,2)
 	,t1.exposed_store_num -- "曝光店铺数" BIGINT
 	,t1.clicked_store_num -- "点击店铺数" BIGINT
