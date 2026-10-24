@@ -1,5 +1,3 @@
-
-
 /*
 商品统计
 */
@@ -420,7 +418,7 @@ WITH mall AS(
         -- 营销费用产生货值
         ,SUM(IF(
             NVL(t1.platform_market_amt_full_reduce_coupon, 0) + NVL(t1.platform_market_amt_single_goods_coupon,0)
-                + NVL(t2.platform_subsidy_amount, 0)>0, t1.delivered_goods_amt, 0
+                + NVL(t2.platform_subsidy_amount, 0)>0, t1.deliveried_goods_amt, 0
         )) AS delivered_goods_amt_with_pmf -- "平台营销费用产生货值" DECIMAL(10,2)
     FROM datawarehouse_max.dwt_order_order_item_daily_asc t1
     LEFT JOIN datawarehouse_max.dwt_order_clearing_asc t2
@@ -457,6 +455,7 @@ WITH mall AS(
             NVL(t1.delivered_goods_amt_with_psmf, 0)
         ) AS delivered_goods_amt_with_psmf-- "补贴产生货值" DECIMAL(10,2)
         ,SUM(t1.ordered_item_ticket_num) AS ordered_item_ticket_num -- "明细订单数量" BIGINT
+        ,SUM(t1.delivered_goods_amt_with_pmf) AS delivered_goods_amt_with_pmf -- "平台营销费用产生货值" DECIMAL(10,2)
     FROM subsidies_temp t1
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
