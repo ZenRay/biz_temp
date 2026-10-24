@@ -18,8 +18,8 @@
 -- 	,city_id BIGINT COMMENT "市ID"
 -- 	,city_name STRING COMMENT "市名称"
 -- 	,county_id BIGINT COMMENT "区县ID"
---     ,operation_type_county STRING COMMENT "区县运营类型"
 -- 	,county_name STRING COMMENT "区县名称"
+--     ,operation_type_county STRING COMMENT "区县运营类型"
 --     ,grid_id BIGINT COMMENT "网格ID"
 --     ,grid_name STRING COMMENT "网格名称"
 --     ,bd_id BIGINT COMMENT "BDID"
@@ -345,8 +345,8 @@ WITH mall AS(
             )) AS non_rebuy_cat1_cdta6d_cnt_30d -- "近30日内售后七日复购未复购次数" BIGINT
         FROM dim_dates t0
         JOIN temp t1
-            ON t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
-                    AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
+            ON t1.dt BETWEEN DATEADD(DATE(t0.dt), - 30, "dd")
+                    AND DATEADD(DATE(t0.dt),  - 1, "dd")
         LEFT JOIN css_rebuy t2
             ON t2.dt = t1.dt
             AND t2.mall_id = t1.mall_id
@@ -390,19 +390,19 @@ WITH mall AS(
         ,COUNT(DISTINCT IF(t1.after_sale_num_by_asdt>0, CONCAT_WS("-", t1.dt, t1.merchant_id), NULL)) AS applied_after_sale_cnt_30d_by_mct -- "近30天申请售后不同商家次数" BIGINT
         ,COLLECT_SET(IF(t1.ordered_goods_num>0, t1.merchant_id, NULL)) AS ordered_merchant_ids
         ,COUNT(DISTINCT IF(
-            t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
-                AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 7, "dd")
+            t1.dt BETWEEN DATEADD(DATE(t0.dt), - 30, "dd")
+                AND DATEADD(DATE(t0.dt), - 7, "dd")
             ,t1.dt, NULL
         )) AS ordered_cnt_m30tm7d -- "下单次数m30tm7d" BIGINT
         ,COUNT(DISTINCT IF(
-            t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 6, "dd")
-                AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 0, "dd")
+            t1.dt BETWEEN DATEADD(DATE(t0.dt), - 6, "dd")
+                AND DATEADD(DATE(t0.dt), - 0, "dd")
             ,t1.dt, NULL
         )) AS ordered_cnt_m6tcd -- "下单次数m6dtcd" BIGINT
     FROM dim_dates t0
     JOIN temp t1
-        ON t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
-                AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
+        ON t1.dt BETWEEN DATEADD(DATE(t0.dt), - 30, "dd")
+                AND DATEADD(DATE(t0.dt), - 1, "dd")
     LEFT JOIN css_rebuy t2
         ON t2.dt = t1.dt
         AND t2.mall_id = t1.mall_id
@@ -431,8 +431,8 @@ WITH mall AS(
         
     FROM dim_dates t0
     JOIN dim_sku t1
-        ON t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
-                AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
+        ON t1.dt BETWEEN DATEADD(DATE(t0.dt),  - 30, "dd")
+                AND DATEADD(DATE(t0.dt), - 1, "dd")
     WHERE t1.mall_id = 871
     GROUP BY t0.dt
         ,t1.category_level1_id -- "一级类目ID" BIGINT
