@@ -17,6 +17,10 @@
 -- 	,city_name STRING COMMENT "市名称"
 -- 	,county_id BIGINT COMMENT "区县ID"
 -- 	,county_name STRING COMMENT "区县名称"
+--     ,grid_id BIGINT COMMENT "网格ID"
+--     ,grid_name STRING COMMENT "网格名称"
+--     ,bd_id BIGINT COMMENT "BDID"
+--     ,bd_name STRING COMMENT "BD姓名"
 -- 	,delivered_goods_amt_30d DECIMAL(15,2) COMMENT "近30天货值"
 -- 	,ordered_goods_num_30d BIGINT COMMENT "近30天下单件数"
 -- 	,refund_amt_by_asdt_30d DECIMAL(15,2) COMMENT "近30天售后赔付金额"
@@ -417,6 +421,10 @@ WITH mall AS(
         ,t5.city_name -- "市名称" STRING
         ,t5.county_id -- "区县ID" BIGINT
         ,t5.county_name -- "区县名称" STRING
+        ,t5.grid_id -- "网格ID" BIGINT
+        ,t5.grid_name -- "网格名称" STRING
+        ,t5.bd_id -- "BDID" BIGINT
+        ,t5.bd_name -- "BD姓名" STRING
         ,t1.delivered_goods_amt_30d -- "近30天货值" DECIMAL(15,2)
         ,t1.ordered_goods_num_30d -- "近30天下单件数" BIGINT
         ,t1.refund_amt_by_asdt_30d -- "近30天售后赔付金额" DECIMAL(15,2)
@@ -473,6 +481,10 @@ SELECT
 	,t1.city_name -- "市名称" STRING
 	,t1.county_id -- "区县ID" BIGINT
 	,t1.county_name -- "区县名称" STRING
+    ,t1.grid_id -- "网格ID" BIGINT
+    ,t1.grid_name -- "网格名称" STRING
+    ,t1.bd_id -- "BDID" BIGINT
+    ,t1.bd_name -- "BD姓名" STRING
 	,t1.delivered_goods_amt_30d -- "近30天货值" DECIMAL(15,2)
 	,t1.ordered_goods_num_30d -- "近30天下单件数" BIGINT
 	,t1.refund_amt_by_asdt_30d -- "近30天售后赔付金额" DECIMAL(15,2)
@@ -509,6 +521,10 @@ SELECT
 	,t1.city_name -- "市名称" STRING
 	,t1.county_id -- "区县ID" BIGINT
 	,t1.county_name -- "区县名称" STRING
+    ,t1.grid_id -- "网格ID" BIGINT
+    ,t1.grid_name -- "网格名称" STRING
+    ,t1.bd_id -- "BDID" BIGINT
+    ,t1.bd_name -- "BD姓名" STRING
 	,t1.delivered_goods_amt_30d -- "近30天货值" DECIMAL(15,2)
 	,t1.ordered_goods_num_30d -- "近30天下单件数" BIGINT
 	,t1.refund_amt_by_asdt_30d -- "近30天售后赔付金额" DECIMAL(15,2)
@@ -548,6 +564,10 @@ SELECT
 	,t1.city_name -- "市名称" STRING
 	,t1.county_id -- "区县ID" BIGINT
 	,t1.county_name -- "区县名称" STRING
+    ,t1.grid_id -- "网格ID" BIGINT
+    ,t1.grid_name -- "网格名称" STRING
+    ,t1.bd_id -- "BDID" BIGINT
+    ,t1.bd_name -- "BD姓名" STRING
 	,t1.delivered_goods_amt_30d -- "近30天货值" DECIMAL(15,2)
 	,t1.ordered_goods_num_30d -- "近30天下单件数" BIGINT
 	,t1.refund_amt_by_asdt_30d -- "近30天售后赔付金额" DECIMAL(15,2)
