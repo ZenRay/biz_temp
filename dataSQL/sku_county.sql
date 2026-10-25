@@ -40,7 +40,12 @@ SKU区县
 -- 	,logon_store_num_by_county BIGINT COMMENT "区县登录店铺数"
 -- 	,exposed_store_num_by_county BIGINT COMMENT "区县曝光店铺数"
 -- 	,ordered_store_num_by_county BIGINT COMMENT "区县下单门店数"
--- )PARTITIONED BY f
+--     ,shared_links_cnt BIGINT COMMENT "BD分享次数"
+--     ,shared_links_store_num BIGINT COMMENT "BD分享触达店铺数"
+--     ,exposed_store_num_by_share_links BIGINT COMMENT "BD分享曝光店铺数"
+--     ,clicked_store_num_by_share_links BIGINT COMMENT "点击BD分享链接店铺数"
+--     ,ordered_store_num_by_share_links BIGINT COMMENT "有BD分享下单的店铺数"
+-- )PARTITIONED BY 
 -- (
 --     dt STRING COMMENT "日期"
 -- )
@@ -151,6 +156,67 @@ WITH mall AS(
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
 )
+
+
+
+
+,recommends_stat AS(
+    SELECT
+        t1.dt -- `日期`
+        ,t1.mall_id -- `商城ID`
+        ,t1.sku_id
+        ,t3.province_id
+        ,t3.county_id
+        ,t3.city_id
+        ,SUM(t1.recommend_cnt) AS shared_links_cnt -- "BD分享次数" BIGINT
+        
+        ,COUNT(DISTINCT t1.customer_store_id) AS shared_links_store_num -- "BD分享触达店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            t2.exposed_cnt >0, t1.customer_store_id, NULL
+        )) AS exposed_store_num_by_share_links -- "BD分享曝光店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            t2.exposed_cnt>0 AND t2.clicked_cnt>0, t1.customer_store_id, NULL
+        )) AS clicked_store_num_by_share_links -- "点击BD分享链接店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            t2.exposed_cnt>0 AND t2.ordered_goods_num>0, t1.customer_store_id, NULL
+        )) AS ordered_store_num_by_share_links -- "有BD分享下单的店铺数" BIGINT
+    FROM (
+        SELECT
+            t1.dt -- "日期" STRING
+            ,t1.mall_id -- "商城ID" BIGINT
+            ,t1.sku_id -- "商品ID" BIGINT
+            ,t1.customer_store_id -- "店铺ID" BIGINT
+            ,COUNT(t1.create_time) AS recommend_cnt -- "BD分享次数" BIGINT
+        FROM datawarehouse_max.dwd_store_mall_store_sku_bd_recommend_detail_daily_asc t1
+
+        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+            AND t1.mall_id = 871
+        GROUP BY t1.dt -- "日期" STRING
+            ,t1.mall_id
+            ,t1.sku_id -- "商品ID" BIGINT
+            ,t1.customer_store_id -- "店铺ID" BIGINT
+    ) t1
+
+    LEFT JOIN datawarehouse_max.dws_store_mall_store_sku_base_daily_asc t2
+        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND t2.dt = t1.dt
+        AND t2.sku_id = t1.sku_id
+        AND t2.customer_store_id = t1.customer_store_id
+        AND t2.mall_id = t1.mall_id
+    LEFT JOIN dim_store t3
+        ON t3.dt = t1.dt
+        AND t3.mall_id = t1.mall_id
+        AND t3.customer_store_id = t1.customer_store_id
+    GROUP BY t1.dt -- `日期`
+        ,t1.mall_id -- `商城ID`
+        ,t1.sku_id
+        ,t3.province_id
+        ,t3.county_id
+        ,t3.city_id
+)
+
 
 ,temp AS (
     SELECT
@@ -335,6 +401,11 @@ SELECT
     ,t03.logon_store_num_by_county -- "区县登录店铺数" BIGINT
     ,t3.exposed_store_num_by_county -- "区县曝光店铺数" BIGINT
     ,t3.ordered_store_num_by_county -- "区县下单门店数" BIGINT
+    ,t4.shared_links_cnt -- "BD分享次数" BIGINT
+    ,t4.shared_links_store_num -- "BD分享触达店铺数" BIGINT
+    ,t4.exposed_store_num_by_share_links -- "BD分享曝光店铺数" BIGINT
+    ,t4.clicked_store_num_by_share_links -- "点击BD分享链接店铺数" BIGINT
+    ,t4.ordered_store_num_by_share_links -- "有BD分享下单的店铺数" BIGINT
     ,t1.dt -- "日期" STRING
 FROM base t1
 
@@ -428,6 +499,13 @@ LEFT JOIN (
     AND t4.county_id = t1.county_id
     AND t4.city_id = t1.city_id
 
+LEFT JOIN recommend_stat t5
+    ON t5.dt = t1.dt
+    AND t5.mall_id = t1.mall_id
+    AND t5.sku_id = t1.sku_id
+    AND t5.province_id = t1.province_id
+    AND t5.city_id = t1.city_id
+    AND t5.county_id = t1.county_id
 
 
 WHERE NVL(t3.ordered_store_num_by_county, 0) + NVL(t03.logon_store_num_by_county, 0) +
@@ -437,5 +515,4 @@ WHERE NVL(t3.ordered_store_num_by_county, 0) + NVL(t03.logon_store_num_by_county
     AND t01.category_level1_name = "水果"
     AND t1.mall_id = 871
 ;
-
 
