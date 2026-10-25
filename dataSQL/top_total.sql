@@ -1,3 +1,4 @@
+
 /*
 跨中心仓Top
 */
@@ -73,7 +74,7 @@ WITH base AS(
     FROM changsha_cat4_stat_daily_asc t1
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-        AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
+        
     QUALIFY rnk = 1
 
     UNION
@@ -122,7 +123,7 @@ WITH base AS(
     FROM changsha_cat4_stat_daily_asc t1
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-        AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
+        
         QUALIFY rnk = 1
 
 
@@ -149,7 +150,7 @@ WITH base AS(
     FROM changsha_mct_cat4_stat_daily_asc t1
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-        AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
+        
     QUALIFY rnk = 1
 
 
@@ -175,7 +176,7 @@ WITH base AS(
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.ordered_store_ratio_by_cat1_rnk =1
         AND t1.ordered_store_ratio_by_cat1 > 0
-        AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
+        
 
     UNION 
     SELECT
@@ -250,7 +251,7 @@ WITH base AS(
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.exposed_store_ratio_by_mall > 0
-        AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
+        
     QUALIFY rnk = 1
 
     UNION
@@ -276,7 +277,7 @@ WITH base AS(
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.exposed_store_ratio_by_cat4 > 0
-        AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
+        
     QUALIFY rnk = 1
 
     UNION
@@ -300,7 +301,7 @@ WITH base AS(
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.ordered_store_ratio_by_cat1_rnk =1
         AND t1.ordered_store_ratio_by_cat1 > 0
-        AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
+        
 
     UNION
 
@@ -323,7 +324,7 @@ WITH base AS(
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.exposed2ordered_store_ratio_desc_rnk_by_cat4 =1
         AND t1.exposed2ordered_store_ratio > 0
-        AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
+        
 
     UNION
 
@@ -396,34 +397,34 @@ WITH base AS(
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.exposed2ordered_store_ratio > 0
-        AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
+        
     QUALIFY rnk = 1
 
-    -- UNION
+    UNION
 
-    -- SELECT
-    --     t1.dt
-    --     ,t1.mall_id
-    --     ,t1.category_level1_id
-    --     ,t1.category_level4_id
-    --     ,t1.category_level4_name
-    --     ,t1.merchant_id
-    --     ,t1.merchant_name
-    --     ,NULL AS sku_id
-    --     ,NULL AS sku_name
-    --     ,t1.exposed2ordered_store_ratio AS metric_value
-    --     ,"跨中心仓同Top1商家品类货值" AS top_type
-    --     ,"四级类目" AS join_type
-    --     ,DENSE_RANK()OVER(
-    --         PARTITION BY t1.dt, t1.category_level4_id
-    --             ORDER BY t1.exposed2ordered_store_ratio DESC 
-    --     ) AS rnk
-    -- FROM changsha_mct_cat4_stat_daily_asc t1
-    -- WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
-    --         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-    --     AND t1.exposed2ordered_store_ratio > 0
-    --     AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
-    -- QUALIFY rnk = 1
+    SELECT
+        t1.dt
+        ,t1.mall_id
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,t1.category_level4_name
+        ,t1.merchant_id
+        ,t1.merchant_name
+        ,NULL AS sku_id
+        ,NULL AS sku_name
+        ,t1.exposed_store_num AS metric_value
+        ,"跨中心仓同品类Top1商家品类曝光店铺数" AS top_type
+        ,"四级类目" AS join_type
+        ,DENSE_RANK()OVER(
+            PARTITION BY t1.dt, t1.category_level4_id
+                ORDER BY t1.exposed_store_num DESC 
+        ) AS rnk
+    FROM changsha_mct_cat4_stat_daily_asc t1
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND t1.exposed_store_num > 0
+        
+    QUALIFY rnk = 1
 
 
 )

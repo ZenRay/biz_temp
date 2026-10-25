@@ -1,3 +1,4 @@
+
 /*
 商家品类Top门店
 */
@@ -75,24 +76,24 @@ WITH mall AS(
         ,t1.customer_store_id
         ,t1.mall_id
         ,SUM(IF(
-            t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
-                AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
+            t1.dt BETWEEN DATEADD(DATE(t0.dt), - 30, "dd")
+                AND DATEADD(DATE(t0.dt), - 1, "dd")
             ,t1.refund_amt_by_asdt, 0
         )) AS refund_amt_30d_by_asdt
         ,COUNT(DISTINCT IF(
-            t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
-                AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
+            t1.dt BETWEEN DATEADD(DATE(t0.dt), - 30, "dd")
+                AND DATEADD(DATE(t0.dt), - 1, "dd")
                 AND t1.after_sale_num_by_asdt > 0
             , t1.dt, NULL
         )) AS applied_after_sale_cnt_30d_by_asdt
         ,SUM(IF(
-            t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
-                AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
+            t1.dt BETWEEN DATEADD(DATE(t0.dt),- 30, "dd")
+                AND DATEADD(DATE(t0.dt),- 1, "dd")
             ,t1.delivered_goods_amt, 0
         )) AS delivered_goods_amt_30d
         ,COUNT(IF(
-            t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
-                AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
+            t1.dt BETWEEN DATEADD(DATE(t0.dt),- 30, "dd")
+                AND DATEADD(DATE(t0.dt), - 1, "dd")
                 AND t1.ordered_goods_num > 0
             ,t1.dt, NULL
         )) AS ordered_cnt_30d
@@ -124,8 +125,8 @@ WITH mall AS(
             AND ISNOTNULL(t1.customer_store_id)
     ) t1
     JOIN dim_dates  t0
-        ON t1.dt BETWEEN DATEADD(DATE(t0.dt), BIGINT("${offset}") - 30, "dd")
-            AND DATEADD(DATE(t0.dt), BIGINT("${offset}") - 1, "dd")
+        ON t1.dt BETWEEN DATEADD(DATE(t0.dt), - 30, "dd")
+            AND DATEADD(DATE(t0.dt),  - 1, "dd")
 
     GROUP BY DATEADD(DATE(t0.dt), + 1, "dd")
         ,t1.merchant_id

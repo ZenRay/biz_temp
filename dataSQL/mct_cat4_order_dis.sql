@@ -341,6 +341,7 @@ SELECT
     t1.mall_id -- "商城ID" BIGINT
     ,t1.category_level1_id -- "一级类目ID" BIGINT
     ,t1.category_level4_id -- "四级类目ID
+    ,t2.category_level4_name
 
     ,SUM(t1.store_num) AS potential_store_num -- "潜在门店数" BIGINT
     ,"["
@@ -378,9 +379,16 @@ FROM(
         ,t1.loss_type -- "下单同商家品类流失类型" STRING
         ,t1.dt
 ) t1
+LEFT JOIN datawarehouse_max.dim_category_daily_full t2
+    ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") -6 -30, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 1, "dd")
+    AND t2.dt = t1.dt
+    AND t2.back_category_id= t1.category_level4_id
+    AND t2.source_type= "OLD"
 GROUP BY t1.mall_id -- "商城ID" BIGINT
         ,t1.category_level1_id -- "一级类目ID" BIGINT
         ,t1.category_level4_id -- "四级类目ID" BIGINT
+        ,t2.category_level4_name
         ,t1.merchant_id -- "商家ID" BIGINT
         ,t1.dt
 ;
