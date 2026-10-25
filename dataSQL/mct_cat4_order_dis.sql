@@ -339,6 +339,8 @@ WITH mall AS(
 
 SELECT
     t1.mall_id -- "商城ID" BIGINT
+    ,t1.merchant_id
+    ,t3.merchant_name
     ,t1.category_level1_id -- "一级类目ID" BIGINT
     ,t1.category_level4_id -- "四级类目ID
     ,t2.category_level4_name
@@ -385,10 +387,17 @@ LEFT JOIN datawarehouse_max.dim_category_daily_full t2
     AND t2.dt = t1.dt
     AND t2.back_category_id= t1.category_level4_id
     AND t2.source_type= "OLD"
+LEFT JOIN datawarehouse_max.dim_merchant_daily_full t3
+    ON t3.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") -6 -30, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 1, "dd")
+    AND t3.dt = t1.dt
+    AND t3.merchant_id  = t1.merchant_id
+    AND t3.mall_id =t1.mall_id
 GROUP BY t1.mall_id -- "商城ID" BIGINT
         ,t1.category_level1_id -- "一级类目ID" BIGINT
         ,t1.category_level4_id -- "四级类目ID" BIGINT
         ,t2.category_level4_name
         ,t1.merchant_id -- "商家ID" BIGINT
+        ,t3.merchant_name
         ,t1.dt
 ;
