@@ -38,7 +38,11 @@ BID=/home/ray/Documents/RecentWorks/BIDashboard
 IMPORT="$BID/scripts/import_data2miaoda.sh"
 DATA_DIR="$BID/data"
 LOG_DIR="$BID/logs/etl"
-mkdir -p "$LOG_DIR"
+mkdir -p "$LOG_DIR" "$DATA_DIR"
+
+# 防并发：batch_export_sql.sh 的断点续传状态是共享文件，两个 ETL 实例同跑会互踩
+exec 9>"$LOG_DIR/.etl.lock"
+flock -n 9 || { echo "❌ 已有另一个 ETL 实例在运行（锁: $LOG_DIR/.etl.lock），本次中止" >&2; exit 3; }
 
 END_DATE=$(date -d 'yesterday' +%F)
 START_DATE=$(date -d "$END_DATE -15 day" +%F)   # 默认近 16 天（止=昨天，T+1 产出）
@@ -83,9 +87,13 @@ fi
 
 # ── 门3：online 显式确认（与导入脚本硬门同语义，双重闸） ─────────────────────
 if [ "$ENV" = "online" ] && [ "${ONLINE_CONFIRM:-0}" != "1" ]; then
-  echo "⚠️  目标是【online 生产库】：将按 dt 范围[$START_DATE~$END_DATE]先删后插 12 表。"
+  echo "⚠️  目标是【online 生产库】：将按 dt 范围[$START_DATE~$END_DATE]先删后插（Got 全量表或 --only 限定）。"
   read -r -p "确认请输入大写 YES（其他任意输入中止）: " ans
   [ "$ans" = "YES" ] || { echo "已中止。可设 ONLINE_CONFIRM=1 免交互。"; exit 1; }
+  # 修复（2026-10-26 实战）：外闸 YES 通过后传导确认给内层导入脚本同名门，
+  # 否则每表都被内层 ONLINE_CONFIRM 硬门拒绝（双闸自锁 bug）。
+  export ONLINE_CONFIRM=1
+  echo "   ✓ 门3 人工确认通过，内层导入同确认生效。"
 fi
 
 map_table() {
@@ -99,8 +107,10 @@ map_table() {
 RUN_LOG="$LOG_DIR/etl_$(date +%Y%m%d_%H%M%S)_$ENV.log"
 RUN_START=$(date +%s)
 declare -A EXPORT_FAILED=()
-declare -a NAME RESULT DETAIL
-n_ok=0; n_fail=0; n_skip=0
+# 注意：必须用 () 显式赋值初始化。仅 declare -a 时数组处于"已声明未设置"态，
+# set -u 下 ${#NAME[@]} 直接炸 unbound，而脚本无 -e → 报错后继续跑假绿退出（2026-10-26 实测）。
+NAME=(); RESULT=(); DETAIL=()
+n_ok=0; n_fail=0
 
 record() { NAME+=("$1"); RESULT+=("$2"); DETAIL+=("$3"); }
 
@@ -110,7 +120,7 @@ if [ "$SKIP_EXPORT" = "0" ]; then
   cd "$AUTOMATION"
   for f in Got/*.sql; do
     base=$(basename "$f" .sql)
-    only_has() { :; }; only_has() { [[ ",{${ONLY// /}," == *",$1,"* ]]; }; [ -n "$ONLY" ] && ! only_has "$base" && continue
+    [ -n "$ONLY" ] && ! only_has "$base" && continue
     echo "▶ 导出 $base ($START_DATE~$END_DATE) $(date +%H:%M:%S)"
     if ./scripts/batch_export_sql.sh --sql-file "$f" --start-date "$START_DATE" --end-date "$END_DATE" --output-dir ./apaas >>"$RUN_LOG" 2>&1; then
       echo "  ✓ $base 导出 ok"
@@ -128,7 +138,7 @@ moved=0
 for f in "$AUTOMATION"/apaas/*.csv; do
   [ -e "$f" ] || continue
   base=$(basename "$f")
-[ -n "$ONLY" ] && ! only_has "${base%.csv}" && continue
+  [ -n "$ONLY" ] && ! only_has "${base%.csv}" && continue
   mv -f "$f" "$DATA_DIR/" && moved=$((moved+1))
 done
 echo "▶ 已搬运 $moved 个 CSV → data/ $(date +%H:%M:%S)"
@@ -138,7 +148,7 @@ cd "$BID"
 for f in "$DATA_DIR"/*.csv; do
   [ -e "$f" ] || continue
   base=$(basename "$f" .csv)
-[ -n "$ONLY" ] && ! only_has "$base" && continue
+  [ -n "$ONLY" ] && ! only_has "$base" && continue
   # 仅处理本 ETL 覆盖的 12 表（data/ 里若有杂项文件跳过）
   [ -e "$AUTOMATION/Got/$base.sql" ] || { echo "· 跳过非 Got 表源文件: $base"; continue; }
   # 防陈旧数据两道闸（2026-10-25 实战事故：导出失败后旧 CSV 被静默重灌并报 OK）：
@@ -182,10 +192,17 @@ done
 echo
 echo "════════ ETL 结果汇总 · env=$ENV · dt $START_DATE~$END_DATE ════════"
 printf '%-42s %-12s %s\n' "表(base)" "结果" "备注"
-for i in "${!NAME[@]}"; do printf '%-42s %-12s %s\n' "${NAME[$i]}" "${RESULT[$i]}" "${DETAIL[$i]}"; done
-[ "${#NAME[@]}" -eq 0 ] && echo "(无处理项)"
+if [ "${#NAME[@]}" -gt 0 ]; then
+  for i in "${!NAME[@]}"; do printf '%-42s %-12s %s\n' "${NAME[$i]}" "${RESULT[$i]}" "${DETAIL[$i]}"; done
+else
+  echo "(无处理项)"
+fi
 echo "──────────────────────────────────────────────"
 echo "OK=$n_ok FAIL=$n_fail · 总日志: $RUN_LOG"
-{ for i in "${!NAME[@]}"; do printf '%s %s %s\n' "${NAME[$i]}" "${RESULT[$i]}" "${DETAIL[$i]}"; done; } > "$SUMMARY"
+# 零处理 = 明显误用（--only 拼错等），以 exit 2 结束且【不覆盖】last_summary，
+# 保护上次失败清单仍可被 --retry-failed 使用（2026-10-26 显式化此前隐式行为）。
+[ "${#NAME[@]}" -gt 0 ] || { echo "❌ 本轮无任何表被处理（--only 拼写/Got 源/CSV 存在性三连查）；已保留上次汇总: $SUMMARY" >&2; exit 2; }
+# 先写临时文件再原子替换：展开中途出错时不会把旧汇总截断成空
+{ for i in "${!NAME[@]}"; do printf '%s %s %s\n' "${NAME[$i]}" "${RESULT[$i]}" "${DETAIL[$i]}"; done; } > "$SUMMARY.tmp" && mv -f "$SUMMARY.tmp" "$SUMMARY"
 echo "汇总已写: $SUMMARY"
 [ "$n_fail" -eq 0 ] || exit 1

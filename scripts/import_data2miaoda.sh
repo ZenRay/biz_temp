@@ -186,7 +186,15 @@ done
 # ── 校验 ──────────────────────────────────────────────────────
 if [ "$MODE" = "clear" ]; then
   EXP=$(awk '{print $1}' "$TMP/written")  # 期望=实际写出行数（开启 --dedup 时小于 CSV 原始行数）
-  post=$(lark-cli apps +db-execute --app-id $APP --environment "$ENV" --yes --sql "SELECT count(*) n FROM $TABLE WHERE dt BETWEEN '$DMIN' AND '$DMAX'" 2>&1 | grep -oE '"n": [0-9]+' | grep -oE '[0-9]+' || echo '?')
+  # 校验查询带重试：lark-cli 端点偶发 timeout（2026-10-26 online 50361 行案例：
+  # 数据全部写成功，仅 COUNT 查询超时 → 误判 FAIL）。查询失败≠导入失败，重试 3 次再裁决。
+  post='?'
+  for vt in 1 2 3; do
+    # || true 必须保留：set -e 下 grep 空匹配（超时场景）会直接杀死脚本，重试形同虚设
+    p=$(lark-cli apps +db-execute --app-id $APP --environment "$ENV" --yes --sql "SELECT count(*) n FROM $TABLE WHERE dt BETWEEN '$DMIN' AND '$DMAX'" 2>&1 | grep -oE '"n": [0-9]+' | grep -oE '[0-9]+' || true)
+    [ -n "$p" ] && { post="$p"; break; }
+    [ "$vt" -lt 3 ] && { echo "校验查询未返回结果（第 $vt/3 次，疑端点抖动），3s 后重试..."; sleep 3; }
+  done
   [ "$post" = "$EXP" ] && echo "✅ 校验通过：$post/$EXP（CSV 原始 $NROWS 行）" || { echo "❌ 校验不符：库内 $post ≠ 写出 $EXP" >&2; exit 1; }
 else
   echo "append 完成：导入 $total 行（未做范围删除，行数校验跳过）"
