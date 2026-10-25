@@ -6,8 +6,12 @@
 #   ./ETL2miaoda.sh                                  # 默认：近16天(止=昨天)，导 dev
 #   ./ETL2miaoda.sh --start-date 2026-10-08 --end-date 2026-10-23 --env dev
 #   ./ETL2miaoda.sh --env online                     # online 需门3人工确认（交互 YES 或 ONLINE_CONFIRM=1）
-#   ./ETL2miaoda.sh --only ads_sku_daily             # 单表快跑（跳过其余表，导出与导入都只处理它）
-#   ./ETL2miaoda.sh --skip-export                    # 不重导 CSV，直接用现有 data/ 灌库
+#   ./ETL2miaoda.sh --only ads_sku_daily             # 限定表快跑（逗号分隔多表：--only a,b,c）
+#   ./ETL2miaoda.sh --skip-export                    # 不跑导出，直接用现有 data/ CSV 灌库
+#   ./ETL2miaoda.sh --retry-failed                   # 按上次运行的失败清单（EXPORT_FAIL/IMPORT_SKIPPED/FAIL）
+#                                                    #   自动组成 --only 集合重跑全链（网络抖动续传场景）
+#   组合示例：导出挂了后续传两张表 →  ./ETL2miaoda.sh --only ads_merchant_category_daily,ads_sku_county_daily
+#             只想重灌 distribute 一张 → ./ETL2miaoda.sh --skip-export --only ads_cat4_mct_distribute_daily
 #
 # 三段流程（对齐 2026-10-24 人工推送方案）:
 #   ① 导出: Automation/scripts/batch_export_sql.sh 逐个跑 Got/*.sql → apaas/*.csv
@@ -41,6 +45,7 @@ START_DATE=$(date -d "$END_DATE -15 day" +%F)   # 默认近 16 天（止=昨天�
 ENV=dev
 ONLY=""
 SKIP_EXPORT=0
+RETRY_FAILED=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -49,13 +54,32 @@ while [ $# -gt 0 ]; do
     --env)        ENV="${2:?}"; shift 2;;
     --only)       ONLY="${2:?}"; shift 2;;
     --skip-export) SKIP_EXPORT=1; shift;;
+    --retry-failed) RETRY_FAILED=1; shift;;
     -h|--help)    grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0;;
     *) echo "未知参数: $1（-h 看用法）" >&2; exit 2;;
   esac
 done
+# --only 匹配：逗号/空格分隔多表（归一化后精确匹配 base 名）
+only_has() { [[ ",${ONLY// /}," == *",$1,"* ]]; }
+
 case "$ENV" in dev|online) : ;; *) echo "--env 仅支持 dev|online" >&2; exit 2;; esac
 [[ "$START_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ && "$END_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || { echo "日期须 YYYY-MM-DD" >&2; exit 2; }
 [ "$START_DATE" \> "$END_DATE" ] && { echo "start-date 不能晚于 end-date" >&2; exit 2; }
+
+# ── --retry-failed：从上次同环境汇总提取失败清单作为 --only ─────────────────
+SUMMARY="$LOG_DIR/last_summary_$ENV.txt"
+if [ "$RETRY_FAILED" = "1" ]; then
+  [ -f "$SUMMARY" ] || { echo "无 $SUMMARY 可解析（先完成一次常规运行）" >&2; exit 2; }
+  FAILED=$(awk '$2=="EXPORT_FAIL"||$2=="IMPORT_SKIPPED"||$2=="FAIL"{print $1}' "$SUMMARY" | sort -u | paste -sd, -)
+  [ -n "$FAILED" ] || { echo "上次运行无失败项，无需重试。"; exit 0; }
+  [ -n "$ONLY" ] && { echo "--retry-failed 与 --only 互斥（retry 会自动组清单）" >&2; exit 2; }
+  ONLY="$FAILED"
+  echo "↻ 重试失败表：$ONLY"
+  if [ "$SKIP_EXPORT" = "1" ] && grep -qE " (EXPORT_FAIL|IMPORT_SKIPPED) " "$SUMMARY"; then
+    echo "   ⚠ 清单含导出失败表但当前为 --skip-export：这些表将用 data/ 现有（可能陈旧）CSV 重灌；"
+    echo "     如需新数据请去掉 --skip-export 让导出重跑（工具支持断点续传）。"
+  fi
+fi
 
 # ── 门3：online 显式确认（与导入脚本硬门同语义，双重闸） ─────────────────────
 if [ "$ENV" = "online" ] && [ "${ONLINE_CONFIRM:-0}" != "1" ]; then
@@ -86,7 +110,7 @@ if [ "$SKIP_EXPORT" = "0" ]; then
   cd "$AUTOMATION"
   for f in Got/*.sql; do
     base=$(basename "$f" .sql)
-    [ -n "$ONLY" ] && [ "$base" != "$ONLY" ] && continue
+    only_has() { :; }; only_has() { [[ ",{${ONLY// /}," == *",$1,"* ]]; }; [ -n "$ONLY" ] && ! only_has "$base" && continue
     echo "▶ 导出 $base ($START_DATE~$END_DATE) $(date +%H:%M:%S)"
     if ./scripts/batch_export_sql.sh --sql-file "$f" --start-date "$START_DATE" --end-date "$END_DATE" --output-dir ./apaas >>"$RUN_LOG" 2>&1; then
       echo "  ✓ $base 导出 ok"
@@ -104,7 +128,7 @@ moved=0
 for f in "$AUTOMATION"/apaas/*.csv; do
   [ -e "$f" ] || continue
   base=$(basename "$f")
-  [ -n "$ONLY" ] && [ "${base%.csv}" != "$ONLY" ] && continue
+[ -n "$ONLY" ] && ! only_has "${base%.csv}" && continue
   mv -f "$f" "$DATA_DIR/" && moved=$((moved+1))
 done
 echo "▶ 已搬运 $moved 个 CSV → data/ $(date +%H:%M:%S)"
@@ -114,7 +138,7 @@ cd "$BID"
 for f in "$DATA_DIR"/*.csv; do
   [ -e "$f" ] || continue
   base=$(basename "$f" .csv)
-  [ -n "$ONLY" ] && [ "$base" != "$ONLY" ] && continue
+[ -n "$ONLY" ] && ! only_has "$base" && continue
   # 仅处理本 ETL 覆盖的 12 表（data/ 里若有杂项文件跳过）
   [ -e "$AUTOMATION/Got/$base.sql" ] || { echo "· 跳过非 Got 表源文件: $base"; continue; }
   # 防陈旧数据两道闸（2026-10-25 实战事故：导出失败后旧 CSV 被静默重灌并报 OK）：
@@ -162,4 +186,6 @@ for i in "${!NAME[@]}"; do printf '%-42s %-12s %s\n' "${NAME[$i]}" "${RESULT[$i]
 [ "${#NAME[@]}" -eq 0 ] && echo "(无处理项)"
 echo "──────────────────────────────────────────────"
 echo "OK=$n_ok FAIL=$n_fail · 总日志: $RUN_LOG"
+{ for i in "${!NAME[@]}"; do printf '%s %s %s\n' "${NAME[$i]}" "${RESULT[$i]}" "${DETAIL[$i]}"; done; } > "$SUMMARY"
+echo "汇总已写: $SUMMARY"
 [ "$n_fail" -eq 0 ] || exit 1
