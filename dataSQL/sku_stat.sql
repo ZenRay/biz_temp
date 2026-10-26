@@ -1,4 +1,3 @@
-
 /*
 商品统计
 */
@@ -65,6 +64,9 @@
 -- 	,pool_num_new_store BIGINT COMMENT "新客户池"
 -- 	,pool_num_old_store BIGINT COMMENT "老客户池"
 -- 	,pool_num_loss_store BIGINT COMMENT "召回客户池"
+--     ,pool_num_incr_ratio_new_store  DECIMAL(10,6) COMMENT "新客户池增长率"
+--     ,pool_num_incr_ratio_old_store  DECIMAL(10,6) COMMENT "老客户池增长率"
+--     ,pool_num_incr_ratio_loss_store  DECIMAL(10,6) COMMENT "召回客户池增长率"
 -- 	,exposed_store_num_old_store BIGINT COMMENT "老客户曝光店铺数"
 -- 	,exposed_store_num_loss_store BIGINT COMMENT "召回客户曝光店铺数"
 -- 	,exposed_store_num_new_store BIGINT COMMENT "新客户曝光店铺数"
@@ -148,7 +150,7 @@ WITH mall AS(
     SELECT
         t1.dt
     FROM datawarehouse_max.dim_date_full t1
-    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6 - 7, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 )
 
@@ -181,7 +183,7 @@ WITH mall AS(
 
         FROM datawarehouse_max.ods_demeter_demeter_goods_prop_full t1
         LEFT JOIN datawarehouse_max.ods_demeter_demeter_goods_full t2
-            ON DATE(TO_DATE(t2.pt, "yyyyMMdd000000")) BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+            ON DATE(TO_DATE(t2.pt, "yyyyMMdd000000")) BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6 , "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
             AND DATE(TO_DATE(t2.pt, "yyyyMMdd000000")) = t1.dt
 
@@ -874,7 +876,7 @@ WITH mall AS(
             ,t1.customer_store_tag
             ,NULL AS is_on
         FROM datawarehouse_max.dws_pub_mall_sku_customer_tag_daily_asc t1
-        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6 - 7, "dd")
                     AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
             AND t1.mall_Id = 871
         UNION
@@ -887,7 +889,7 @@ WITH mall AS(
 
             ,1 AS is_on
         FROM datawarehouse_max.dws_store_mall_store_sku_base_daily_asc t1
-        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6 - 7, "dd")
                     AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
             AND t1.mall_id = 871
             AND NVL(t1.exposed_cnt, 0) + NVL(t1.ordered_goods_num,0) + NVL(t1.after_sale_num, 0) 
@@ -899,6 +901,19 @@ WITH mall AS(
         ,t1.customer_store_id
 )
 
+,pool_store AS(
+SELECT
+    t1.dt
+    ,t1.mall_id
+    ,t1.sku_id
+    ,COUNT(DISTINCT IF(INSTR(t1.customer_store_tag, "new")>0, t1.customer_store_id, NULL)) AS pool_num_new_store
+    ,COUNT(DISTINCT IF(INSTR(t1.customer_store_tag, "loss")>0, t1.customer_store_id, NULL)) AS pool_num_loss_store
+    ,COUNT(DISTINCT IF(INSTR(t1.customer_store_tag, "old")>0, t1.customer_store_id, NULL)) AS pool_num_old_store
+FROM store_tag t1
+GROUP BY t1.dt
+    ,t1.mall_id
+    ,t1.sku_id
+)
 
 
 ,css_rebuy_tag AS(
@@ -1059,6 +1074,9 @@ WITH mall AS(
         ,t7.pool_num_new_store -- "新客户池" BIGINT
         ,t7.pool_num_old_store -- "老客户池" BIGINT
         ,t7.pool_num_loss_store -- "召回客户池" BIGINT
+        ,ROUND(t7.pool_num_new_store / t7.pool_num_new_store - 1, 6) AS pool_num_incr_ratio_new_store -- "新客户池增长率" DECIMAL(10,6)
+        ,ROUND(t7.pool_num_old_store / t7.pool_num_old_store - 1, 6) AS pool_num_incr_ratio_old_store -- "老客户池增长率" DECIMAL(10,6)
+        ,ROUND(t7.pool_num_loss_store / t7.pool_num_loss_store - 1, 6) AS pool_num_incr_ratio_loss_store -- "召回客户池增长率" DECIMAL(10,6)
         ,t1.exposed_store_num_old_user AS exposed_store_num_old_store -- "老客户曝光店铺数" BIGINT
         ,t1.exposed_store_num_loss_user AS exposed_store_num_loss_store -- "召回客户曝光店铺数" BIGINT
         ,t1.exposed_store_num_new_user AS exposed_store_num_new_store -- "新客户曝光店铺数" BIGINT
@@ -1242,32 +1260,37 @@ WITH mall AS(
         AND t6.mall_id = t1.mall_id
         AND t6.sku_id = t1.sku_id
     
-    LEFT JOIN (
-        SELECT
-            t1.dt
-            ,t1.mall_id
-            ,t1.sku_id
-            ,COUNT(
-                DISTINCT IF(INSTR(NVL(t1.customer_store_tag, "new"), "new")>0, t1.customer_store_id, NULL )
-            ) AS pool_num_new_store
-            ,COUNT(
-                DISTINCT IF(INSTR(NVL(t1.customer_store_tag, "new"), "old")>0, t1.customer_store_id, NULL )
-            ) AS pool_num_old_store
-            ,COUNT(
-                DISTINCT IF(INSTR(NVL(t1.customer_store_tag, "new"), "loss")>0, t1.customer_store_id, NULL )
-            ) AS pool_num_loss_store
-        FROM store_tag t1
-        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
-                    AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-        GROUP BY  t1.dt
-            ,t1.mall_id
-            ,t1.sku_id
+    LEFT JOIN pool_store t7
+    -- (
+    --     SELECT
+    --         t1.dt
+    --         ,t1.mall_id
+    --         ,t1.sku_id
+    --         ,COUNT(
+    --             DISTINCT IF(INSTR(NVL(t1.customer_store_tag, "new"), "new")>0, t1.customer_store_id, NULL )
+    --         ) AS pool_num_new_store
+    --         ,COUNT(
+    --             DISTINCT IF(INSTR(NVL(t1.customer_store_tag, "new"), "old")>0, t1.customer_store_id, NULL )
+    --         ) AS pool_num_old_store
+    --         ,COUNT(
+    --             DISTINCT IF(INSTR(NVL(t1.customer_store_tag, "new"), "loss")>0, t1.customer_store_id, NULL )
+    --         ) AS pool_num_loss_store
+    --     FROM store_tag t1
+    --     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+    --                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+    --     GROUP BY  t1.dt
+    --         ,t1.mall_id
+    --         ,t1.sku_id
         
 
-    ) t7
+    -- ) t7
         ON t7.dt = t1.dt
         AND t7.mall_id = t1.mall_id
         AND t7.sku_id = t1.sku_id
+    LEFT JOIN pool_store t07
+        ON t07.dt = DATEADD(DATE(t1.dt), -6, "dd")
+        AND t07.mall_id = t1.mall_id
+        AND t07.sku_id = t1.sku_id
     
     LEFT JOIN (
         SELECT
@@ -1396,6 +1419,9 @@ SELECT
 	,t1.pool_num_new_store -- "新客户池" BIGINT
 	,t1.pool_num_old_store -- "老客户池" BIGINT
 	,t1.pool_num_loss_store -- "召回客户池" BIGINT
+    ,t1.pool_num_incr_ratio_new_store -- "新客户池增长率" DECIMAL(10,6)
+    ,t1.pool_num_incr_ratio_old_store -- "老客户池增长率" DECIMAL(10,6)
+    ,t1.pool_num_incr_ratio_loss_store -- "召回客户池增长率" DECIMAL(10,6)
 	,t1.exposed_store_num_old_store -- "老客户曝光店铺数" BIGINT
 	,t1.exposed_store_num_loss_store -- "召回客户曝光店铺数" BIGINT
 	,t1.exposed_store_num_new_store -- "新客户曝光店铺数" BIGINT
