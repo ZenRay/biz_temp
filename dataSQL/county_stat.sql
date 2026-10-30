@@ -13,6 +13,7 @@
 --     ,county_id  BIGINT COMMENT "区县ID"
 --     ,county_name  STRING COMMENT "区县名称"
 --     ,ordered_store_num  BIGINT COMMENT "下单门店数"
+--     ,delivered_goods_amt DECIMAL(10,2) COMMENT "货值"
 --     ,visited_item_info STRING COMMENT "BD拜访详情"
 --     ,visited_store_num  BIGINT COMMENT "拜访门店数量"
 -- )PARTITIONED BY 
@@ -44,7 +45,6 @@ WITH visited_store AS(
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t2.dt = t1.dt
         AND t2.mall_id = t1.mall_id
-        AND t2.mall_id = t1.mall_id
         AND t2.customer_store_id = t1.customer_store_id
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
@@ -62,28 +62,34 @@ WITH visited_store AS(
 ,base AS(
     SELECT
         t1.mall_id -- "商城ID" BIGINT
-        ,t1.province_id -- "省ID" BIGINT
-        ,t1.province_name -- "省名称" STRING
-        ,t1.city_id -- "市ID" BIGINT
-        ,REGEXP_REPLACE(t1.city_name, "\\d", "") AS city_name -- "市名称" STRING -- "市名称" STRING
-        ,t1.county_id -- "区县ID" BIGINT
-        ,t1.county_name -- "区县名称" STRING
-        ,SUM(t1.ordered_store_num) AS ordered_store_num -- "下单门店数" BIGINT
-
+        ,t2.province_id -- "省ID" BIGINT
+        ,t2.province_name -- "省名称" STRING
+        ,t2.city_id -- "市ID" BIGINT
+        ,REGEXP_REPLACE(t2.city_name, "\\d", "") AS city_name -- "市名称" STRING -- "市名称" STRING
+        ,t2.county_id -- "区县ID" BIGINT
+        ,t2.county_name -- "区县名称" STRING
+        ,COUNT(DISTINCT IF(t1.ordered_goods_num>0, t1.customer_store_id, NULL)) AS ordered_store_num -- "下单门店数" BIGINT
+        ,SUM(t1.delivered_goods_amt) AS delivered_goods_amt -- "货值" DECIMAL(10,2)
 
         ,t1.dt
-    FROM datawarehouse_max.dws_pub_mall_country_base_daily_asc t1
+    FROM datawarehouse_max.dws_store_mall_store_sku_base_daily_asc t1
+    LEFT JOIN datawarehouse_max.dim_store_daily_full t2
+        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND t2.dt = t1.dt
+        AND t2.mall_id = t1.mall_id
+        AND t2.customer_store_id = t1.customer_store_id
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
-        AND ISNOTNULL(t1.county_id)
+        AND INSTR(t1.category_level1_name, "水果") > 0
     GROUP BY t1.mall_id -- "商城ID" BIGINT
-        ,t1.province_id -- "省ID" BIGINT
-        ,t1.province_name -- "省名称" STRING
-        ,t1.city_id -- "市ID" BIGINT
-        ,REGEXP_REPLACE(t1.city_name, "\\d", "")
-        ,t1.county_id -- "区县ID" BIGINT
-        ,t1.county_name -- "区县名称" STRING
+        ,t2.province_id -- "省ID" BIGINT
+        ,t2.province_name -- "省名称" STRING
+        ,t2.city_id -- "市ID" BIGINT
+        ,REGEXP_REPLACE(t2.city_name, "\\d", "")
+        ,t2.county_id -- "区县ID" BIGINT
+        ,t2.county_name -- "区县名称" STRING
         ,t1.dt
 
 )
@@ -98,6 +104,7 @@ SELECT
     ,t1.county_id -- "区县ID" BIGINT
     ,t1.county_name -- "区县名称" STRING
     ,t1.ordered_store_num -- "下单门店数" BIGINT
+    ,t1.delivered_goods_amt -- "货值" DECIMAL(10,2)
     ,IF(
         t2.visited_store_num>0, t2.visited_item_info, NULL
     ) AS visited_item_info -- "BD拜访详情" STRING
@@ -136,5 +143,4 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 
 ;
-
 
