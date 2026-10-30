@@ -117,7 +117,10 @@ fi
 if [ "$MODE" = "clear" ]; then
   pre=$(lark-cli apps +db-execute --app-id $APP --environment "$ENV" --yes --sql "SELECT count(*) n FROM $TABLE WHERE dt BETWEEN '$DMIN' AND '$DMAX'" 2>&1 | grep -oE '"n": [0-9]+' | grep -oE '[0-9]+' || echo '?')
   echo "clear：删除既有 $pre 行（dt $DMIN~$DMAX）"
-  del=$(lark-cli apps +db-execute --app-id $APP --environment "$ENV" --yes --sql "DELETE FROM $TABLE WHERE dt BETWEEN '$DMIN' AND '$DMAX'" 2>&1)
+  # || true 必须保留：set -e 下 DELETE 非零退出（如大表超时）会在本行静默杀死脚本，
+  # 下行错误处理器永远执行不到、日志断在 clear 行（2026-10-30 online 257k 行实测）；
+  # 与校验段（下文 vt 重试处）同一陷阱同一修法。失败判定交给下一行的 grep。
+  del=$(lark-cli apps +db-execute --app-id $APP --environment "$ENV" --yes --sql "DELETE FROM $TABLE WHERE dt BETWEEN '$DMIN' AND '$DMAX'" 2>&1) || true
   echo "$del" | grep -q '"ok": true' || { echo "❌ 中止：DELETE 未成功，未做任何导入。原始输出:" >&2; echo "$del" >&2; exit 1; }
 fi
 

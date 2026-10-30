@@ -1,0 +1,13 @@
+{
+  "storagePath": "docs/LearningNote",
+  "fieldGroups": {
+    "snapshot": {
+      "extraFields": [
+        "capability_total",
+        "capability_read",
+        "capability_write",
+        "capability_file"
+      ]
+    }
+  }
+}
