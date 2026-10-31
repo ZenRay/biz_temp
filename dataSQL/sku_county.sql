@@ -1,4 +1,3 @@
-
 /*
 SKU区县
 */
@@ -401,11 +400,11 @@ SELECT
     ,t03.logon_store_num_by_county -- "区县登录店铺数" BIGINT
     ,t3.exposed_store_num_by_county -- "区县曝光店铺数" BIGINT
     ,t3.ordered_store_num_by_county -- "区县下单门店数" BIGINT
-    ,t4.shared_links_cnt -- "BD分享次数" BIGINT
-    ,t4.shared_links_store_num -- "BD分享触达店铺数" BIGINT
-    ,t4.exposed_store_num_by_share_links -- "BD分享曝光店铺数" BIGINT
-    ,t4.clicked_store_num_by_share_links -- "点击BD分享链接店铺数" BIGINT
-    ,t4.ordered_store_num_by_share_links -- "有BD分享下单的店铺数" BIGINT
+    ,t5.shared_links_cnt -- "BD分享次数" BIGINT
+    ,t5.shared_links_store_num -- "BD分享触达店铺数" BIGINT
+    ,t5.exposed_store_num_by_share_links -- "BD分享曝光店铺数" BIGINT
+    ,t5.clicked_store_num_by_share_links -- "点击BD分享链接店铺数" BIGINT
+    ,t5.ordered_store_num_by_share_links -- "有BD分享下单的店铺数" BIGINT
     ,t1.dt -- "日期" STRING
 FROM base t1
 
@@ -499,7 +498,7 @@ LEFT JOIN (
     AND t4.county_id = t1.county_id
     AND t4.city_id = t1.city_id
 
-LEFT JOIN recommend_stat t5
+LEFT JOIN recommends_stat t5
     ON t5.dt = t1.dt
     AND t5.mall_id = t1.mall_id
     AND t5.sku_id = t1.sku_id
@@ -515,4 +514,5 @@ WHERE NVL(t3.ordered_store_num_by_county, 0) + NVL(t03.logon_store_num_by_county
     AND t01.category_level1_name = "水果"
     AND t1.mall_id = 871
 ;
+
 
