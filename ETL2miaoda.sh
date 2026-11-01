@@ -30,6 +30,13 @@
 #     需要"整表与 CSV 完全一致"时，先人工核对后手动 DELETE 范围外的 dt（脚本不代做删数）。
 #   - 逐文件独立成败：单表失败不中断其余，最后汇总表格结论并以非零码退出。
 #   - biz_* 目标表不在本链（源为飞书多维表格，非 Got SQL）。
+#
+# 网络抖动自愈（2026-10-31，当日 dev 实测 3 起瞬断均需人工重跑）:
+#   - 导出失败自动重试 1 次（batch_export_sql.sh 断点续传，重试不重拉已完成批次）
+#   - 导入仅【网络类】失败（type:"network"/timeout 特征）自动重试 1 次（clear 幂等）；
+#     数据类失败（列核对/判重/NOT NULL 空值硬门）重跑必然同败 → 立即失败交人
+#   - 导入脚本内部另有：表结构拉取×3、DELETE×2、分片×2、count 校验×3 的重试
+#   - 仍失败 → 汇总记 EXPORT_FAIL/FAIL，用 --retry-failed 一键续跑
 # =============================================================================
 set -uo pipefail
 
@@ -122,10 +129,19 @@ if [ "$SKIP_EXPORT" = "0" ]; then
     base=$(basename "$f" .sql)
     [ -n "$ONLY" ] && ! only_has "$base" && continue
     echo "▶ 导出 $base ($START_DATE~$END_DATE) $(date +%H:%M:%S)"
-    if ./scripts/batch_export_sql.sh --sql-file "$f" --start-date "$START_DATE" --end-date "$END_DATE" --output-dir ./apaas >>"$RUN_LOG" 2>&1; then
+    # 网络抖动自动重试 1 次（2026-10-31 dev 实测：MaxCompute endpoint 连接超时挂 2 表，
+    # 人工原样重跑即成功）；batch_export_sql.sh 自带断点续传，重试从断点续跑不重拉已完成批次
+    exp_ok=0
+    for etry in 1 2; do
+      if ./scripts/batch_export_sql.sh --sql-file "$f" --start-date "$START_DATE" --end-date "$END_DATE" --output-dir ./apaas >>"$RUN_LOG" 2>&1; then
+        exp_ok=1; break
+      fi
+      [ "$etry" = 1 ] && { echo "  ↻ $base 导出失败，10s 后重试（断点续传）$(date +%H:%M:%S)"; sleep 10; }
+    done
+    if [ "$exp_ok" = 1 ]; then
       echo "  ✓ $base 导出 ok"
     else
-      echo "  ✗ $base 导出失败（详见 $RUN_LOG）"
+      echo "  ✗ $base 导出失败（重试后仍失败，详见 $RUN_LOG）"
       record "$base" "EXPORT_FAIL" "见 $RUN_LOG"
       EXPORT_FAILED[$base]=1
     fi
@@ -166,7 +182,26 @@ for f in "$DATA_DIR"/*.csv; do
   tbl=$(map_table "$base")
   echo "▶ 导入 $base → $tbl (env=$ENV, mode=clear) $(date +%H:%M:%S)"
   file_log="$LOG_DIR/${base}_${ENV}_$(date +%Y%m%d_%H%M%S).log"
-  if out=$(ONLINE_CONFIRM="${ONLINE_CONFIRM:-0}" "$IMPORT" --csv "$f" --table "$tbl" --env "$ENV" --mode clear --int-float-fix 2>&1) && echo "$out" | tee "$file_log" >/dev/null; then
+  # 网络类失败自动重试 1 次（2026-10-31 dev 实测：预检拉表结构 dial timeout 杀整表，人工重跑即好）。
+  # 判据=lark-cli 错误 JSON 的 type:"network" 或 timeout 字样；数据类失败（硬门/判重/NOT NULL 空值）
+  # 重跑必然同败，立即失败交人。clear 模式按 dt 范围幂等，整表重跑安全。
+  imp_ok=0
+  for itry in 1 2; do
+    if out=$(ONLINE_CONFIRM="${ONLINE_CONFIRM:-0}" "$IMPORT" --csv "$f" --table "$tbl" --env "$ENV" --mode clear --int-float-fix 2>&1); then
+      imp_ok=1; break
+    fi
+    # 判据补 context deadline exceeded（2026-10-31 中午实测：本地代理劣化时 lark-cli 报
+    # type:"internal"+deadline 而非 network/timeout，旧判据漏掉导致不重试）
+    if [ "$itry" = 1 ] && echo "$out" | grep -qE '"type": *"network"|timeout|context deadline exceeded'; then
+      echo "$out" > "$file_log.nettry1"
+      echo "  ↻ $base 网络类失败，10s 后重试导入（clear 幂等）$(date +%H:%M:%S)"
+      sleep 10
+      continue
+    fi
+    break
+  done
+  if [ "$imp_ok" = 1 ]; then
+    echo "$out" > "$file_log"
     rows=$("$BID/.venv/bin/python" -I -c "import pyarrow.csv as c
 r=c.open_csv('$f')
 n=0

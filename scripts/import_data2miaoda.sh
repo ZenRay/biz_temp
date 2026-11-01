@@ -22,7 +22,13 @@
 #   1) 列核对先行：CSV 表头出现任何表外列（疑似拼写错误/多余列）→ 立即中止并输出差异，
 #      由人修正数据文件或确认表结构后重试；脚本绝不自动改名/剔列。
 #   2) 表内 NOT NULL 且无默认值的列在 CSV 中缺失 → 中止。
+#      2b) NOT NULL 列**值**为空（2026-10-31 前移）：脏值行曾穿透列名核对、直到分片导入
+#          Row 620 才爆——彼时 clear 的 DELETE 已执行。现在 pandas 预检直接中止（零副作用），
+#          报列名/空值数/首个文件行号；脚本绝不自动过滤行，修数仓 SQL 后重导。
 #   3) 任一分片失败重试一次后仍失败 → 中止（clear 模式可安全重跑）。
+# 网络抖动自愈（2026-10-31，当日 dev 实测 3 起瞬断全部人工重跑即好）：
+#   表结构拉取重试 3 次（只读）；DELETE 重试 1 次（按 dt 范围幂等，重执行安全）；
+#   分片导入重试 1 次（既有）；count 校验重试 3 次（既有）。数据类失败不在此列，立即失败。
 # 大数据量：按实测字节自动切 ≤900KB 分片（lark-cli 单请求 1MB 上限），并封顶 ≤5000 行/片
 #   （平台硬性限制 k_dl_4000007: Import exceeds 5000 rows limit），逐片导入。
 set -euo pipefail
@@ -52,7 +58,16 @@ fi
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 
 # ── 门1/门2：列核对（只读，零副作用） ─────────────────────────
-lark-cli apps +db-table-get --app-id $APP --table "$TABLE" --environment "$ENV" > "$TMP/tbl.json"
+# 拉表结构网络抖动重试 3 次（2026-10-31 dev 实测：单次 dial timeout 直接杀死整表导入，
+# 人工重跑即成功——与 count 校验段 retry 同族修法；本步只读，重试绝对安全）
+got=0
+for gt in 1 2 3; do
+  if lark-cli apps +db-table-get --app-id $APP --table "$TABLE" --environment "$ENV" > "$TMP/tbl.json" 2>"$TMP/tbl.err" && grep -q '"ok": true' "$TMP/tbl.json"; then
+    got=1; break
+  fi
+  [ "$gt" -lt 3 ] && { echo "拉取表结构未成功（第 $gt/3 次，疑网络抖动），3s 后重试..."; sleep 3; }
+done
+[ "$got" = 1 ] || { echo "❌ 中止：拉取表结构连续 3 次失败（网络/端点异常），零副作用。最后输出:" >&2; cat "$TMP/tbl.json" "$TMP/tbl.err" >&2; exit 1; }
 "$PY" -I - "$CSV" "$TMP/tbl.json" <<'PY'
 import csv, json, sys
 with open(sys.argv[1], newline='', encoding='utf-8-sig') as f:
@@ -91,6 +106,22 @@ df = pd.read_csv(path, dtype=str, keep_default_na=False, na_values=[])
 if fixint:
     IP = re.compile(r'^(-?\d+)\.0+$')
     df = df.apply(lambda s: s.str.replace(IP, r'\1', regex=True))
+# 门2b（2026-10-31 前移）：NOT NULL 无默认列的**值**不得为空。
+# 此前脏值行穿透列名核对、到分片导入才爆（Row 620 实测），彼时 clear 的 DELETE 已执行；
+# 现在预检零副作用中止。绝不自动过滤行——修数仓 SQL/数据后重导。
+SYSTEM = {'id', '_synced_at', '_sync_batch_id'}
+cols = t['columns'] if 'columns' in t else raw['data']['columns']
+required = [c['name'] for c in cols if not c.get('nullable', True) and not c.get('default') and c['name'] not in SYSTEM]
+null_bad = []
+for c in required:
+    if c in df.columns:
+        empt = df[c].str.strip() == ''
+        if int(empt.sum()) > 0:
+            null_bad.append((c, int(empt.sum()), int(df.index[empt][0]) + 2))  # +2=文件物理行号（表头1行+0基）
+if null_bad:
+    for c, n, ln in null_bad:
+        print(f"❌ 中止：NOT NULL 列 '{c}' 存在 {n} 个空值（首个在文件第 {ln} 行）——数据源/数仓 SQL 修正后重导，脚本不自动过滤行", file=sys.stderr)
+    sys.exit(1)
 dup_full = int(df.duplicated().sum())
 if uk and all(c in df.columns for c in uk):
     dup_uk = int(df.duplicated(subset=uk).sum())
@@ -119,9 +150,16 @@ if [ "$MODE" = "clear" ]; then
   echo "clear：删除既有 $pre 行（dt $DMIN~$DMAX）"
   # || true 必须保留：set -e 下 DELETE 非零退出（如大表超时）会在本行静默杀死脚本，
   # 下行错误处理器永远执行不到、日志断在 clear 行（2026-10-30 online 257k 行实测）；
-  # 与校验段（下文 vt 重试处）同一陷阱同一修法。失败判定交给下一行的 grep。
-  del=$(lark-cli apps +db-execute --app-id $APP --environment "$ENV" --yes --sql "DELETE FROM $TABLE WHERE dt BETWEEN '$DMIN' AND '$DMAX'" 2>&1) || true
-  echo "$del" | grep -q '"ok": true' || { echo "❌ 中止：DELETE 未成功，未做任何导入。原始输出:" >&2; echo "$del" >&2; exit 1; }
+  # 与校验段（下文 vt 重试处）同一陷阱同一修法。失败判定交给循环后的 grep。
+  # 网络抖动重试 1 次（2026-10-31）：DELETE 按 dt 范围幂等——首次实际生效但响应超时的场景，
+  # 重执行只是删 0 行，安全；两次都失败才中止（未做任何导入）。
+  del=""
+  for dtry in 1 2; do
+    del=$(lark-cli apps +db-execute --app-id $APP --environment "$ENV" --yes --sql "DELETE FROM $TABLE WHERE dt BETWEEN '$DMIN' AND '$DMAX'" 2>&1) || true
+    echo "$del" | grep -q '"ok": true' && break
+    [ "$dtry" = 1 ] && { echo "DELETE 未成功（疑网络抖动），3s 后重试..."; sleep 3; }
+  done
+  echo "$del" | grep -q '"ok": true' || { echo "❌ 中止：DELETE 重试后仍未成功，未做任何导入。原始输出:" >&2; echo "$del" >&2; exit 1; }
 fi
 
 # ── 分片（pyarrow 流式 + 字节预算 ≤900KB/片，原样保留文本精度；可选无损修复开关） ──
