@@ -94,6 +94,17 @@ WITH mall AS(
     )
 )
 
+
+
+,dim_dates AS(
+    SELECT
+        t1.dt
+    FROM datawarehouse_max.dim_date_full t1
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 7, "dd")
+        AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+)
+
+
 ,dim_sku AS(
     SELECT
         t1.dt
@@ -130,6 +141,75 @@ WITH mall AS(
         AND t1.mall_id = 871
 )
 
+
+
+
+
+,cat4_store_base AS(
+    SELECT
+        t1.dt
+        ,t1.mall_id
+        
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,IF(
+            NVL(t1.exposed_cnt_30d, 0)>=7, "+7次", NVL(t1.exposed_cnt_30d, 0) || "次"
+        ) AS exposed_days_30d
+        ,COUNT(DISTINCT t1.customer_store_id) AS store_num
+        ,COUNT(DISTINCT IF( t3.is_login>0, t1.customer_store_id, NULL)) AS logon_store_num
+        ,COUNT(DISTINCT IF(
+            t2.exposed_cnt>0, t1.customer_store_id, NULL
+        )) AS exposed_store_num
+        ,COUNT(DISTINCT IF(
+            t2.ordered_goods_num>0, t1.customer_store_id, NULL 
+        )) AS ordered_store_num
+    FROM(
+        SELECT/*+ MAPJOIN(t0) */
+            t0.dt
+            ,t1.mall_id
+            ,t1.customer_store_id
+            ,t1.category_level1_id
+            ,t1.category_level4_id
+            ,COUNT(DISTINCT IF(
+                t1.exposed_cnt>0, t1.dt, NULL
+            )) AS exposed_cnt_30d
+        FROM dim_dates t0
+        JOIN datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t1
+            ON t1.dt BETWEEN DATEADD(TO_DATE(t0.dt), -30, "dd")
+                AND DATEADD(TO_DATE(t0.dt), -1, "dd")
+        WHERE t0.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+
+        GROUP BY t0.dt
+            ,t1.mall_id
+            ,t1.customer_store_id
+            ,t1.category_level1_id
+            ,t1.category_level4_id
+    ) t1
+    LEFT JOIN datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t2
+        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND t2.dt = t1.dt
+        AND t2.customer_store_id = t1.customer_store_id
+        AND t2.mall_id = t1.mall_id
+        AND t2.category_level1_id = t1.category_level1_id
+        AND t2.category_level4_id = t1.category_level4_id
+    
+    LEFT JOIN dim_store t3
+        ON t3.dt = t1.dt
+        AND t3.mall_id = t1.mall_id
+        AND t3.customer_store_id = t1.customer_store_id
+    GROUP BY t1.dt
+        ,t1.mall_id
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,NVL(t1.exposed_cnt_30d, 0)
+)
+
+
+
+
+
 ,subsides AS(
     SELECT
         t1.dt
@@ -148,7 +228,7 @@ WITH mall AS(
         )) AS delivered_goods_amt_full_mct
         ,SUM(IF(
             NVL(t1.platform_market_amt_full_reduce_coupon, 0) + NVL(t1.platform_market_amt_single_goods_coupon,0)
-                + NVL(t2.platform_subsidy_amount, 0)
+                + NVL(t2.platform_subsidy_amount, 0) > 0
             , t1.deliveried_goods_amt, 0
         )) AS delivered_goods_amt_with_pmf
     FROM datawarehouse_max.dwt_order_order_item_daily_asc t1
@@ -405,16 +485,19 @@ WITH mall AS(
             ,t1.ordered_days_30d
             ,COUNT(DISTINCT t1.customer_store_id) AS store_num
             ,COUNT(DISTINCT IF(
-                t1.is_login >0, t1.customer_store_id, NULL
+                t2.is_login > 0, t1.customer_store_id, NULL
             )) AS logon_store_num
             ,COUNT(DISTINCT IF(
-                NVL(t1.exposed_cnt, 0) > 0 AND t1.is_login > 0, t1.customer_store_id, NULL
+                NVL(t1.exposed_cnt, 0) > 0, t1.customer_store_id, NULL
             )) AS exposed_store_num
             ,COUNT(DISTINCT IF(
                 t1.ordered_goods_num > 0, t1.customer_store_id, NULL
             )) AS ordered_store_num
         FROM store_stat t1
-        
+        LEFT JOIN dim_store t2
+            ON t2.dt = t1.dt
+            AND t2.mall_id = t1.mall_id
+            AND t2.customer_store_id = t1.customer_store_id
         GROUP BY t1.dt
             ,t1.category_level1_id
             ,t1.category_level4_id
@@ -459,31 +542,7 @@ WITH mall AS(
                 ,'"' || t1.exposed_days_30d || '":' || t1.ordered_store_num
             ) ||
         '}' AS ordered_store_num_by_exposed_30d_info
-    FROM(
-        SELECT
-            t1.dt
-            ,t1.category_level1_id
-            ,t1.category_level4_id
-            ,t1.mall_id
-            ,t1.exposed_days_30d
-            ,COUNT(DISTINCT t1.customer_store_id) AS store_num
-            ,COUNT(DISTINCT IF(
-                t1.is_login >0, t1.customer_store_id, NULL
-            )) AS logon_store_num
-            ,COUNT(DISTINCT IF(
-                NVL(t1.exposed_cnt, 0) > 0 AND t1.is_login > 0, t1.customer_store_id, NULL
-            )) AS exposed_store_num
-            ,COUNT(DISTINCT IF(
-                t1.ordered_goods_num > 0, t1.customer_store_id, NULL
-            )) AS ordered_store_num
-        FROM store_stat t1
-        
-        GROUP BY t1.dt
-            ,t1.category_level1_id
-            ,t1.category_level4_id
-            ,t1.mall_id
-            ,t1.exposed_days_30d
-    ) t1
+    FROM cat4_store_base t1
 
     GROUP BY t1.dt
         ,t1.category_level1_id
@@ -712,18 +771,4 @@ FROM base t1
 
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
--- WHERE (
---         -- 长沙仓仓内过滤
---         (
---             t1.mall_id = 871 AND (
---                 t1.exposed_store_num_desc_rnk=1 OR t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
---             )
---         )
---         -- 跨仓过滤
---             OR (
---                 t1.exposed_store_ratio_by_mall_desc_rnk =1
---                     AND t1.category_level4_name IN ("秋月梨", "蜜桔", "红富士苹果")
---             )
---     )
--- ;
 ;
