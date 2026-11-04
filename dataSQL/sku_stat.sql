@@ -637,110 +637,75 @@ WITH mall AS(
 )
 
 
+
+,store_sku_base AS(
+    SELECT
+        t1.dt
+        ,t1.mall_id
+        ,t1.customer_store_id
+        ,t1.sku_id
+        
+        ,t1.exposed_cnt
+        ,t1.ordered_goods_num
+    FROM datawarehouse_max.dws_store_mall_store_sku_base_daily_asc  t1
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 30, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND t1.mall_id = 871
+)
+
+
+
 ,store_stat AS(
     SELECT
         t1.dt
         ,t1.mall_id
         ,t1.customer_store_id
         ,t1.sku_id
-        ,MAX(NVL(t2.is_login,0)) AS is_login
-        ,CASE
-            WHEN 
-                NVL(MAX(t1.ordered_days_30d), 0) = 0 
-            THEN "0次"
-            WHEN 
-                NVL(MAX(t1.ordered_days_30d), 0) = 1
-            THEN "1次"
-            WHEN 
-                NVL(MAX(t1.ordered_days_30d), 0) = 2
-            THEN "2次"
-            WHEN 
-                NVL(MAX(t1.ordered_days_30d), 0) = 3
-            THEN "3次"
-            WHEN 
-                NVL(MAX(t1.ordered_days_30d), 0) = 4
-            THEN "4次"
-            WHEN 
-                NVL(MAX(t1.ordered_days_30d), 0) = 5
-            THEN "5次"
-            WHEN 
-                NVL(MAX(t1.ordered_days_30d), 0) = 6
-            THEN "6次"
-            WHEN 
-                NVL(MAX(t1.ordered_days_30d), 0) >=7
-            THEN "7+次"
-        END  AS ordered_days_30d
-                ,CASE
-            WHEN 
-                NVL(MAX(t1.exposed_days_30d), 0) = 0 
-            THEN "0次"
-            WHEN 
-                NVL(MAX(t1.exposed_days_30d), 0) = 1
-            THEN "1次"
-            WHEN 
-                NVL(MAX(t1.exposed_days_30d), 0) = 2
-            THEN "2次"
-            WHEN 
-                NVL(MAX(t1.exposed_days_30d), 0) = 3
-            THEN "3次"
-            WHEN 
-                NVL(MAX(t1.exposed_days_30d), 0) = 4
-            THEN "4次"
-            WHEN 
-                NVL(MAX(t1.exposed_days_30d), 0) = 5
-            THEN "5次"
-            WHEN 
-                NVL(MAX(t1.exposed_days_30d), 0) = 6
-            THEN "6次"
-            WHEN 
-                NVL(MAX(t1.exposed_days_30d), 0) >=7
-            THEN "7+次"
-        END  AS exposed_days_30d
-        ,MAX(t1.exposed_cnt) AS exposed_cnt
-        ,MAX(t1.ordered_goods_num) AS ordered_goods_num
+        ,NVL(t2.is_login,0) AS is_login
+        ,IF(
+            NVL(t1.ordered_days_30d,0)>=7, "7+次", NVL(t1.ordered_days_30d, 0) || "次"
+        ) AS ordered_days_30d
+        ,IF(
+            NVL(t1.exposed_days_30d,0)>=7, "7+次", NVL(t1.exposed_days_30d, 0) || "次"
+        ) AS exposed_days_30d
+        ,t3.exposed_cnt
+        ,t3.ordered_goods_num
     FROM(
-        SELECT
-            t1.dt
-            ,t1.mall_id
-            ,t1.customer_store_id
-            ,t1.sku_id
-            ,t1.ordered_days_30d
-            ,t1.exposed_days_30d
-            ,NULL AS exposed_cnt
-            ,NULL AS ordered_goods_num
-        FROM datawarehouse_max.dws_store_mall_store_sku_feature_daily_asc t1
-        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
-                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-            AND t1.mall_id = 871
-            AND ISNOTNULL(t1.customer_store_id) AND ISNOTNULL(t1.sku_id)
-            AND NVL(t1.ordered_days_30d,0) + NVL(t1.exposed_days_30d, 0) > 0
 
-        UNION
-
-        SELECT
-            t1.dt
+        SELECT /*+ MAPJOIN(t0) */
+            t0.dt
             ,t1.mall_id
-            ,t1.customer_store_id
             ,t1.sku_id
-            
-            ,0 AS ordered_days_30d
-            ,0 AS exposed_day_30d
-            ,t1.exposed_cnt
-            ,t1.ordered_goods_num
-        FROM datawarehouse_max.dws_store_mall_store_sku_base_daily_asc  t1
-        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
-                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-            AND t1.mall_id = 871
+            ,t1.customer_store_id
+
+            ,COUNT(DISTINCT IF(
+                t1.exposed_cnt>0, t1.dt, NULL
+            )) AS exposed_days_30d
+            ,COUNT(DISTINCT IF(
+                t1.ordered_goods_num>0, t1.dt, NULL
+            )) AS ordered_days_30d
+        FROM store_sku_base t1
+        JOIN dim_dates t0
+            ON t1.dt BETWEEN DATEADD(DATE(t0.dt), -30, "dd")
+                AND DATEADD(DATE(t0.dt),-1, "dd")
+
+        WHERE t0.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+                    AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        GROUP BY t0.dt
+            ,t1.mall_id
+            ,t1.sku_id
+            ,t1.customer_store_id
 
     ) t1
     LEFT JOIN dim_store t2
         ON t2.dt = t1.dt
         AND t2.customer_store_id = t1.customer_store_id
         AND t2.mall_id = t1.mall_id
-    GROUP BY t1.dt
-        ,t1.mall_id
-        ,t1.customer_store_id
-        ,t1.sku_id
+    LEFT JOIN store_sku_base t3
+        ON t3.dt = t1.dt
+        AND t3.mall_id = t1.mall_id
+        AND t3.customer_store_id = t1.customer_store_id
+        AND t3.sku_id = t1.sku_id
 )
 
 ,ordered_store AS(
@@ -1484,5 +1449,4 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
     AND t1.mall_id = 871
 ;
-
 
