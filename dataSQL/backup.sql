@@ -257,6 +257,15 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
 -- 	,exposed_store_num_desc_rnk_by_mall BIGINT COMMENT "曝光门店数排名"
 -- 	,exposed_store_ratio_by_mall DECIMAL(10,6) COMMENT "跨仓曝光门店数占商城比例"
 -- 	,exposed_store_ratio_by_mall_desc_rnk BIGINT COMMENT "跨仓曝光门店数占商城比例倒排排名"
+
+-- 	,ordered_store_num_m7d BIGINT COMMENT "周同比下单店铺数"
+-- 	,delivered_goods_amt_m7d DECIMAL(10,2) COMMENT "周同比货值"
+-- 	,delivered_goods_num_m7d BIGINT COMMENT "周同比件数"
+
+-- 	,ordered_store_num_m6dtcd BIGINT COMMENT "近七日下单店铺数"
+-- 	,delivered_goods_amt_m6dtcd DECIMAL(20,2) COMMENT "近七日货值"
+-- 	,delivered_goods_num_m6dtcd BIGINT COMMENT "近七日件数"
+-- 	,ordered_cnt_m6dtcd BIGINT COMMENT "近七日交易次数"
 -- )PARTITIONED BY 
 -- (
 --     dt STRING COMMENT "日期"
@@ -289,7 +298,7 @@ WITH mall AS(
     SELECT
         t1.dt
     FROM datawarehouse_max.dim_date_full t1
-    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 7, "dd")
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 )
 
@@ -314,7 +323,7 @@ WITH mall AS(
         END AS merchant_type
         ,t1.is_up_today
     FROM datawarehouse_max.dim_goods_daily_full t1
-    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 )
 
@@ -325,7 +334,7 @@ WITH mall AS(
         ,t1.mall_id
         ,t1.is_login
     FROM datawarehouse_max.dws_store_central_warehouse_base_daily_asc t1
-    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
 )
@@ -366,7 +375,7 @@ WITH mall AS(
         JOIN datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t1
             ON t1.dt BETWEEN DATEADD(TO_DATE(t0.dt), -30, "dd")
                 AND DATEADD(TO_DATE(t0.dt), -1, "dd")
-        WHERE t0.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        WHERE t0.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 
         GROUP BY t0.dt
@@ -376,7 +385,7 @@ WITH mall AS(
             ,t1.category_level4_id
     ) t1
     LEFT JOIN datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t2
-        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t2.dt = t1.dt
         AND t2.customer_store_id = t1.customer_store_id
@@ -422,14 +431,14 @@ WITH mall AS(
         )) AS delivered_goods_amt_with_pmf
     FROM datawarehouse_max.dwt_order_order_item_daily_asc t1
     LEFT JOIN datawarehouse_max.dwt_order_clearing_asc t2
-        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t2.order_item_id = t1.order_item_id
     LEFT JOIN dim_sku t3
         ON t3.dt = t1.dt
         AND t3.mall_id = t1.mall_id
         AND t3.sku_id = t1.sku_id
-    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
         AND t1.status != "CANCEL"
@@ -456,7 +465,7 @@ WITH mall AS(
         AND t2.mall_id = t1.mall_id
         AND t2.sku_id = t1.sku_id
     
-    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
         AND t1.status != "CANCEL"
@@ -497,7 +506,7 @@ WITH mall AS(
             ,COUNT(t1.create_time) AS recommend_cnt -- "BD分享次数" BIGINT
         FROM datawarehouse_max.dwd_store_mall_store_sku_bd_recommend_detail_daily_asc t1
 
-        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
             AND t1.mall_id = 871
         GROUP BY t1.dt -- "日期" STRING
@@ -507,7 +516,7 @@ WITH mall AS(
     ) t1
 
     LEFT JOIN datawarehouse_max.dws_store_mall_store_sku_base_daily_asc t2
-        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t2.dt = t1.dt
         AND t2.sku_id = t1.sku_id
@@ -599,7 +608,7 @@ WITH mall AS(
             ,NULL AS exposed_cnt
             ,NULL AS ordered_goods_num
         FROM datawarehouse_max.dws_store_mall_store_category_level4_feature_daily_asc t1
-        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
             AND t1.mall_id = 871
             AND ISNOTNULL(t1.customer_store_id) AND ISNOTNULL(t1.category_level4_id)
@@ -619,7 +628,7 @@ WITH mall AS(
             ,t1.exposed_cnt
             ,t1.ordered_goods_num
         FROM datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t1
-        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
             AND t1.mall_id = 871
 
@@ -831,13 +840,13 @@ WITH mall AS(
     JOIN mall t0
         ON t0.mall_id = t1.mall_id
     LEFT JOIN datawarehouse_max.dws_pub_mall_cate1_base_daily_asc  t2
-        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
                     AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t2.dt = t1.dt
         AND t2.mall_id = t1.mall_id
         AND t2.category_level1_id = t1.category_level1_id
     LEFT JOIN datawarehouse_max.dws_pub_mall_base_daily_asc  t3
-        ON t3.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+        ON t3.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
                     AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t3.dt = t1.dt
         AND t3.mall_id = t1.mall_id
@@ -880,10 +889,35 @@ WITH mall AS(
         ON t9.dt = t1.dt
         AND t9.mall_id = t1.mall_id
         AND t9.category_level4_id = t1.category_level4_id
-    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
                     AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND ISNOTNULL(t1.category_level4_id)
         
+)
+
+
+,roll_7d AS(
+    SELECT/*+ MAPJOIN(t0) */
+        t0.dt
+        ,t1.mall_id
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,SUM(t1.ordered_store_num) AS ordered_store_num_m6dtcd
+        ,SUM(t1.delivered_goods_amt) AS delivered_goods_amt_m6dtcd
+        ,SUM(t1.delivered_goods_num) AS delivered_goods_num_m6dtcd
+        ,COUNT(DISTINCT IF(
+            t1.ordered_goods_num>0, t1.dt, NULL
+        )) AS ordered_cnt_m6dtcd
+    FROM dim_dates t0
+    JOIN base t1
+        ON t1.dt BETWEEN DATEADD(DATE(t0.dt), -6, "dd")
+            AND DATEADD(DATE(t0.dt), 0, "dd")
+    WHERE t0.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+                        AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd") 
+    GROUP BY t0.dt
+        ,t1.mall_id
+        ,t1.category_level1_id
+        ,t1.category_level4_id
 )
 
 
@@ -955,11 +989,30 @@ SELECT
 	,t1.exposed_store_ratio_by_mall -- "跨仓曝光门店数占商城比例" DECIMAL(10,6)
 	,t1.exposed_store_ratio_by_mall_desc_rnk -- "跨仓曝光门店数占商城比例倒排排名" BIGINT
     
-    ,t1.dt
-FROM base t1
+    ,t2.ordered_store_num AS ordered_store_num_m7d -- "周同比下单店铺数" BIGINT
+    ,t2.delivered_goods_amt AS delivered_goods_amt_m7d -- "周同比货值" DECIMAL(10,2)
+    ,t2.delivered_goods_num AS delivered_goods_num_m7d -- "周同比件数" BIGINT
 
+    ,t3.ordered_store_num_m6dtcd -- "近七日下单店铺数" BIGINT
+    ,t3.delivered_goods_amt_m6dtcd -- "近七日货值" DECIMAL(20,2)
+    ,t3.delivered_goods_num_m6dtcd -- "近七日件数" BIGINT
+    ,t3.ordered_cnt_m6dtcd -- "近七日交易次数" BIGINT
+    ,t1.dt
+
+FROM base t1
+LEFT JOIN base t2
+    ON t2.dt = DATEADD(DATE(t1.dt), -7, "dd")
+    AND t2.mall_id = t1.mall_id
+    AND t2.category_level1_id = t1.category_level1_id
+    AND t2.category_level4_id = t1.category_level1_id
+LEFT JOIN roll_7d t3
+    ON t3.dt = t1.dt
+    AND t3.mall_id = t1.mall_id
+    AND t3.category_level1_id = t1.category_level1_id
+    AND t3.category_level4_id = t1.category_level1_id
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+
 ;
 
 
@@ -5123,11 +5176,11 @@ WITH mall AS(
     SELECT
         t1.dt -- "日期" STRING
         ,t2.merchant_id -- "商家ID" BIGINT
-        ,t2.merchant_name -- "商家名称" STRING
+        -- ,t2.merchant_name -- "商家名称" STRING
         ,t2.category_level1_id -- "一级类目ID" BIGINT
-        ,t2.category_level1_name
+        -- ,t2.category_level1_name
         ,t2.category_level4_id -- "四级类目ID" BIGINT
-        ,t2.category_level4_name
+        -- ,t2.category_level4_name
         ,t1.customer_store_id -- "店铺ID" BIGINT
         ,t1.mall_id -- "商城ID" BIGINT
         ,SUM(t1.final_refund_amt) AS refund_amt_by_asdt -- "自然日赔付金额" DECIMAL(10,2)
@@ -5151,9 +5204,9 @@ WITH mall AS(
         ,t2.merchant_id
         ,t2.merchant_name
         ,t2.category_level1_id
-        ,t2.category_level1_name
+        -- ,t2.category_level1_name
         ,t2.category_level4_id
-        ,t2.category_level4_name
+        -- ,t2.category_level4_name
         ,t1.customer_store_id
         ,t1.mall_id
 
@@ -5380,13 +5433,13 @@ FROM(
 ) t1
 LEFT JOIN datawarehouse_max.dim_category_daily_full t2
     ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") -6 -30, "dd")
-            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 1, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") , "dd")
     AND t2.dt = t1.dt
     AND t2.back_category_id= t1.category_level4_id
     AND t2.source_type= "OLD"
 LEFT JOIN datawarehouse_max.dim_merchant_daily_full t3
     ON t3.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") -6 -30, "dd")
-            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 1, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
     AND t3.dt = t1.dt
     AND t3.merchant_id  = t1.merchant_id
     AND t3.mall_id =t1.mall_id
