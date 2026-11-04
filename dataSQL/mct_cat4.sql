@@ -11,6 +11,8 @@
 -- 	,merchant_id BIGINT COMMENT "商家id"
 -- 	,merchant_name STRING COMMENT "商家名称"
 -- 	,merchant_type STRING COMMENT "商家类型"
+--     ,purchase_user_id BIGINT COMMENT "供货经办人ID"
+--     ,purchase_leader_name STRING COMMENT "供货经办人姓名"
 -- 	,category_level1_id BIGINT COMMENT "一级类目id"
 -- 	,category_level1_name STRING COMMENT "一级类目名称"
 -- 	,category_level4_id BIGINT COMMENT "四级类目id"
@@ -728,6 +730,8 @@ SELECT
 	,t1.merchant_id -- "商家id" BIGINT
 	,t1.merchant_name -- "商家名称" STRING
 	,t1.merchant_type -- "商家类型" STRING
+    ,t4.purchase_user_id -- "供货经办人ID" BIGINT
+    ,t4.purchase_leader_name -- "供货经办人姓名" STRING
 	,t1.category_level1_id -- "一级类目id" BIGINT
 	,t1.category_level1_name -- "一级类目名称" STRING
 	,t1.category_level4_id -- "四级类目id" BIGINT
@@ -820,6 +824,13 @@ LEFT JOIN css_type_info t3
     AND t3.category_level1_id = t1.category_level1_id
     AND t3.category_level4_id = t1.category_level4_id
     AND t3.merchant_id = t1.merchant_id
+
+LEFT JOIN datawarehouse_max.dim_merchant_daily_full t4
+        ON t4.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") -6, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND t4.dt = t1.dt
+        AND t4.mall_id = t1.mall_id
+        AND t4.merchant_id = t1.merchant_id
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 ;

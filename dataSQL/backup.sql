@@ -183,7 +183,6 @@ LEFT JOIN subsidies t3
     AND t3.category_level1_id = t1.category_level1_id
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-    AND t1.mall_id = 871
     AND ISNOTNULL(t1.category_level1_id)
 ;
 
@@ -375,7 +374,9 @@ WITH mall AS(
         JOIN datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t1
             ON t1.dt BETWEEN DATEADD(TO_DATE(t0.dt), -30, "dd")
                 AND DATEADD(TO_DATE(t0.dt), -1, "dd")
-        WHERE t0.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
+            AND t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6 - 30, "dd")
+                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        WHERE t0.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 
         GROUP BY t0.dt
@@ -385,7 +386,7 @@ WITH mall AS(
             ,t1.category_level4_id
     ) t1
     LEFT JOIN datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t2
-        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
+        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t2.dt = t1.dt
         AND t2.customer_store_id = t1.customer_store_id
@@ -431,14 +432,14 @@ WITH mall AS(
         )) AS delivered_goods_amt_with_pmf
     FROM datawarehouse_max.dwt_order_order_item_daily_asc t1
     LEFT JOIN datawarehouse_max.dwt_order_clearing_asc t2
-        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
+        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t2.order_item_id = t1.order_item_id
     LEFT JOIN dim_sku t3
         ON t3.dt = t1.dt
         AND t3.mall_id = t1.mall_id
         AND t3.sku_id = t1.sku_id
-    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
         AND t1.status != "CANCEL"
@@ -465,7 +466,7 @@ WITH mall AS(
         AND t2.mall_id = t1.mall_id
         AND t2.sku_id = t1.sku_id
     
-    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
+    WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.mall_id = 871
         AND t1.status != "CANCEL"
@@ -506,7 +507,7 @@ WITH mall AS(
             ,COUNT(t1.create_time) AS recommend_cnt -- "BD分享次数" BIGINT
         FROM datawarehouse_max.dwd_store_mall_store_sku_bd_recommend_detail_daily_asc t1
 
-        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
+        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
             AND t1.mall_id = 871
         GROUP BY t1.dt -- "日期" STRING
@@ -516,7 +517,7 @@ WITH mall AS(
     ) t1
 
     LEFT JOIN datawarehouse_max.dws_store_mall_store_sku_base_daily_asc t2
-        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
+        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t2.dt = t1.dt
         AND t2.sku_id = t1.sku_id
@@ -608,7 +609,7 @@ WITH mall AS(
             ,NULL AS exposed_cnt
             ,NULL AS ordered_goods_num
         FROM datawarehouse_max.dws_store_mall_store_category_level4_feature_daily_asc t1
-        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
+        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
             AND t1.mall_id = 871
             AND ISNOTNULL(t1.customer_store_id) AND ISNOTNULL(t1.category_level4_id)
@@ -628,7 +629,7 @@ WITH mall AS(
             ,t1.exposed_cnt
             ,t1.ordered_goods_num
         FROM datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t1
-        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 14, "dd")
+        WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
             AND t1.mall_id = 871
 
@@ -1004,12 +1005,12 @@ LEFT JOIN base t2
     ON t2.dt = DATEADD(DATE(t1.dt), -7, "dd")
     AND t2.mall_id = t1.mall_id
     AND t2.category_level1_id = t1.category_level1_id
-    AND t2.category_level4_id = t1.category_level1_id
+    AND t2.category_level4_id = t1.category_level4_id
 LEFT JOIN roll_7d t3
     ON t3.dt = t1.dt
     AND t3.mall_id = t1.mall_id
     AND t3.category_level1_id = t1.category_level1_id
-    AND t3.category_level4_id = t1.category_level1_id
+    AND t3.category_level4_id = t1.category_level4_id
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 
@@ -5752,6 +5753,8 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
 -- 	,merchant_id BIGINT COMMENT "商家id"
 -- 	,merchant_name STRING COMMENT "商家名称"
 -- 	,merchant_type STRING COMMENT "商家类型"
+--     ,purchase_user_id BIGINT COMMENT "供货经办人ID"
+--     ,purchase_leader_name STRING COMMENT "供货经办人姓名"
 -- 	,category_level1_id BIGINT COMMENT "一级类目id"
 -- 	,category_level1_name STRING COMMENT "一级类目名称"
 -- 	,category_level4_id BIGINT COMMENT "四级类目id"
@@ -6469,6 +6472,8 @@ SELECT
 	,t1.merchant_id -- "商家id" BIGINT
 	,t1.merchant_name -- "商家名称" STRING
 	,t1.merchant_type -- "商家类型" STRING
+    ,t4.purchase_user_id -- "供货经办人ID" BIGINT
+    ,t4.purchase_leader_name -- "供货经办人姓名" STRING
 	,t1.category_level1_id -- "一级类目id" BIGINT
 	,t1.category_level1_name -- "一级类目名称" STRING
 	,t1.category_level4_id -- "四级类目id" BIGINT
@@ -6561,6 +6566,13 @@ LEFT JOIN css_type_info t3
     AND t3.category_level1_id = t1.category_level1_id
     AND t3.category_level4_id = t1.category_level4_id
     AND t3.merchant_id = t1.merchant_id
+
+LEFT JOIN datawarehouse_max.dim_merchant_daily_full t4
+        ON t4.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") -6, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND t4.dt = t1.dt
+        AND t4.mall_id = t1.mall_id
+        AND t4.merchant_id = t1.merchant_id
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 ;

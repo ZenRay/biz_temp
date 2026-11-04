@@ -815,12 +815,12 @@ LEFT JOIN base t2
     ON t2.dt = DATEADD(DATE(t1.dt), -7, "dd")
     AND t2.mall_id = t1.mall_id
     AND t2.category_level1_id = t1.category_level1_id
-    AND t2.category_level4_id = t1.category_level1_id
+    AND t2.category_level4_id = t1.category_level4_id
 LEFT JOIN roll_7d t3
     ON t3.dt = t1.dt
     AND t3.mall_id = t1.mall_id
     AND t3.category_level1_id = t1.category_level1_id
-    AND t3.category_level4_id = t1.category_level1_id
+    AND t3.category_level4_id = t1.category_level4_id
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 

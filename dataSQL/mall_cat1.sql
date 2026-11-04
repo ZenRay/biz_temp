@@ -90,6 +90,5 @@ LEFT JOIN subsidies t3
     AND t3.category_level1_id = t1.category_level1_id
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-    AND t1.mall_id = 871
     AND ISNOTNULL(t1.category_level1_id)
 ;
