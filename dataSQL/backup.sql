@@ -6923,6 +6923,8 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
 
 
 
+
+
 /*
 跨中心仓Top
 */
@@ -6966,7 +6968,7 @@ WITH base AS(
         ,t1.exposed2ordered_store_ratio AS metric_value -- "数据值" DECIMAL(15,6)
         ,"跨中心仓Top1品类曝光转化率" AS top_type -- ' Top类型' STRING
         ,"一级类目" AS join_type -- "关联方式" STRING
-        ,DENSE_RANK()OVER(
+        ,ROW_NUMBER()OVER(
             PARTITION BY t1.dt, t1.category_level1_id
             ORDER BY t1.exposed2ordered_store_ratio DESC
         ) AS rnk
@@ -6991,7 +6993,7 @@ WITH base AS(
         ,t1.exposed_store_num AS metric_value -- "数据值" DECIMAL(15,6)
         ,"跨中心仓同品类Top1品类曝光店铺数" AS top_type -- ' Top类型' STRING
         ,"四级类目" AS join_type -- "关联方式" STRING
-        ,DENSE_RANK()OVER(
+        ,ROW_NUMBER()OVER(
             PARTITION BY t1.dt, t1.category_level4_id
             ORDER BY t1.exposed_store_num DESC
         ) AS rnk
@@ -7016,7 +7018,7 @@ WITH base AS(
         ,t1.exposed_store_num AS metric_value -- "数据值" DECIMAL(15,6)
         ,"跨中心仓Top1品类曝光店铺数" AS top_type -- ' Top类型' STRING
         ,"一级类目" AS join_type -- "关联方式" STRING
-        ,DENSE_RANK()OVER(
+        ,ROW_NUMBER()OVER(
             PARTITION BY t1.dt, t1.category_level1_id
             ORDER BY t1.exposed_store_num DESC
         ) AS rnk
@@ -7040,7 +7042,7 @@ WITH base AS(
         ,t1.exposed2ordered_store_ratio AS metric_value -- "数据值" DECIMAL(15,6)
         ,"跨中心仓同品类Top1品类曝光转化率" AS top_type -- ' Top类型' STRING
         ,"四级类目" AS join_type -- "关联方式" STRING
-        ,DENSE_RANK()OVER(
+        ,ROW_NUMBER()OVER(
             PARTITION BY t1.dt, t1.category_level4_id
                 ORDER BY t1.exposed2ordered_store_ratio DESC
         ) AS rnk
@@ -7067,14 +7069,14 @@ WITH base AS(
         ,t1.exposed_store_ratio_by_mall AS metric_value
         ,"跨中心仓同品类Top1商家品类曝光占比" AS top_type
         ,"四级类目" AS join_type
-        ,DENSE_RANK()OVER(
-            PARTITION BY t1.dt, t1.category_level4_id
+        ,ROW_NUMBER()OVER(
+            PARTITION BY t1.dt, t1.category_level4_id, t1.category_level1_id
                 ORDER BY t1.exposed_store_ratio_by_mall DESC
         ) AS rnk
     FROM changsha_mct_cat4_stat_daily_asc t1
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-        
+        AND t1.exposed_store_ratio_by_mall > 0
     QUALIFY rnk = 1
 
 
@@ -7116,7 +7118,7 @@ WITH base AS(
         ,t1.exposed2ordered_store_ratio AS metric_value
         ,"跨中心仓Top1商家品类曝光转化率" AS top_type
         ,"一级类目" AS join_type
-        ,DENSE_RANK()OVER(
+        ,ROW_NUMBER()OVER(
             PARTITION BY t1.dt, t1.category_level1_id
                 ORDER BY t1.exposed2ordered_store_ratio DESC
         ) AS rnk
@@ -7141,7 +7143,7 @@ WITH base AS(
         ,t1.ordered_store_num AS metric_value
         ,"跨中心仓Top1商家品类下单店铺数" AS top_type
         ,"一级类目" AS join_type
-        ,DENSE_RANK()OVER(
+        ,ROW_NUMBER()OVER(
             PARTITION BY t1.dt, t1.category_level1_id
                 ORDER BY t1.ordered_store_num DESC
         ) AS rnk
@@ -7150,6 +7152,7 @@ WITH base AS(
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND INSTR(t1.category_level1_name, "水果") >0
         AND t1.ordered_store_num > 0
+        
     QUALIFY rnk = 1
     
     UNION
@@ -7167,7 +7170,7 @@ WITH base AS(
         ,t1.exposed_store_ratio_by_mall AS metric_value
         ,"跨中心仓同品类Top1商家品类曝光占商城比例" AS top_type
         ,"四级类目" AS join_type
-        ,DENSE_RANK()OVER(
+        ,ROW_NUMBER()OVER(
             PARTITION BY t1.dt, t1.category_level4_id
                 ORDER BY t1.exposed_store_ratio_by_mall DESC
         ) AS rnk
@@ -7175,6 +7178,7 @@ WITH base AS(
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.exposed_store_ratio_by_mall > 0
+        AND INSTR(t1.category_level1_name, "水果") > 0
         
     QUALIFY rnk = 1
 
@@ -7193,7 +7197,7 @@ WITH base AS(
         ,t1.exposed_store_ratio_by_cat4 AS metric_value
         ,"跨中心仓同品类Top1商家品类曝光占品类比例" AS top_type
         ,"四级类目" AS join_type
-        ,DENSE_RANK()OVER(
+        ,ROW_NUMBER()OVER(
             PARTITION BY t1.dt, t1.category_level4_id
                 ORDER BY t1.exposed_store_ratio_by_cat4 DESC 
         ) AS rnk
@@ -7201,6 +7205,7 @@ WITH base AS(
     WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.exposed_store_ratio_by_cat4 > 0
+        AND INSTR(t1.category_level1_name, "水果") > 0
         
     QUALIFY rnk = 1
 
@@ -7225,6 +7230,7 @@ WITH base AS(
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.ordered_store_ratio_by_cat1_rnk =1
         AND t1.ordered_store_ratio_by_cat1 > 0
+        AND INSTR(t1.category_level1_name, "水果") > 0
         
 
     UNION
@@ -7248,6 +7254,7 @@ WITH base AS(
             AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
         AND t1.exposed2ordered_store_ratio_desc_rnk_by_cat4 =1
         AND t1.exposed2ordered_store_ratio > 0
+        AND INSTR(t1.category_level1_name, "水果") > 0
         
 
     UNION
@@ -7287,7 +7294,7 @@ WITH base AS(
         ,t1.ordered_store_ratio_by_cat1 AS metric_value
         ,"跨中心仓Top1商品日活覆盖率" AS top_type
         ,"一级类目" AS join_type
-        ,DENSE_RANK()OVER(
+        ,ROW_NUMBER()OVER(
             PARTITION BY t1.dt, t1.category_level1_id
                 ORDER BY t1.ordered_store_ratio_by_cat1 DESC
         ) AS rnk
@@ -7313,7 +7320,7 @@ WITH base AS(
         ,t1.exposed2ordered_store_ratio AS metric_value
         ,"跨中心仓同品类Top1商家品类曝光转化率" AS top_type
         ,"四级类目" AS join_type
-        ,DENSE_RANK()OVER(
+        ,ROW_NUMBER()OVER(
             PARTITION BY t1.dt, t1.category_level4_id
                 ORDER BY t1.exposed2ordered_store_ratio DESC 
         ) AS rnk
@@ -7339,7 +7346,7 @@ WITH base AS(
         ,t1.exposed_store_num AS metric_value
         ,"跨中心仓同品类Top1商家品类曝光店铺数" AS top_type
         ,"四级类目" AS join_type
-        ,DENSE_RANK()OVER(
+        ,ROW_NUMBER()OVER(
             PARTITION BY t1.dt, t1.category_level4_id
                 ORDER BY t1.exposed_store_num DESC 
         ) AS rnk
