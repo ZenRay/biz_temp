@@ -202,14 +202,22 @@ for f in "$DATA_DIR"/*.csv; do
   done
   if [ "$imp_ok" = 1 ]; then
     echo "$out" > "$file_log"
-    rows=$("$BID/.venv/bin/python" -I -c "import pyarrow.csv as c
-r=c.open_csv('$f')
+    # 行数统计必须与导入器同一读取口径（import_data2miaoda.sh:177-179 全列 string）：
+    # 默认 open_csv 会按内容推断类型，遇 bigint 列出现小数文本（如 ads_sku_daily 第43列 '66.12'）
+    # 即抛 ArrowInvalid，被 || echo '?' 吞掉 → 汇总显示 "? 行"（2026-11-09 online 实测）。
+    # stderr 改为追加进本表日志，不再静默丢弃。
+    rows=$("$BID/.venv/bin/python" -I -c "import csv, pyarrow as pa, pyarrow.csv as c
+with open('$f', newline='', encoding='utf-8-sig') as fh:
+    names=next(csv.reader(fh))
+r=c.open_csv('$f',
+             read_options=c.ReadOptions(autogenerate_column_names=False),
+             convert_options=c.ConvertOptions(column_types=pa.schema([(n, pa.string()) for n in names])))
 n=0
 while True:
     try: b=r.read_next_batch()
     except StopIteration: break
     n+=b.num_rows
-print(n)" 2>/dev/null || echo '?')
+print(n)" 2>>"$file_log" || echo '?')
     echo "  ✓ $base ok (${rows} 行)"
     record "$base" "OK" "${rows} 行"
     n_ok=$((n_ok+1))

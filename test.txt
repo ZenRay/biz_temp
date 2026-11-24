@@ -1,0 +1,41 @@
+uv run python - <<'PY'
+import json
+import shutil
+import tempfile
+from pathlib import Path
+from code_parser.main import build_authoritative
+
+services = [
+    ("casaba", "casaba", "casaba.sql"),
+    ("demeter-order-service", "demeter-order-service", "demeter_order_service.sql"),
+    ("finance-open", "finance-open", "finance-open.sql"),
+    ("css", "css", "css.sql"),
+    ("ume", "ume", "ume.sql"),
+    ("starfruit", "starfruit", "starfruit.sql"),
+    ("zeus_price", "zeus-price-service", "zeus_price.sql"),
+    ("jackfruit", "jackfruit", "jackfruit.sql"),  # 最后执行
+]
+
+db = Path("data/code_parser.db").resolve()
+
+for service, repo, ddl in services:
+    repo_path = Path("../../submodules") / repo
+    ddl_path = Path("input/ddl") / ddl
+    if not repo_path.is_dir() or not ddl_path.is_file():
+        raise SystemExit(f"源码目录或 DDL 不存在：{service}")
+    print(f"\n===== {service} =====", flush=True)
+    with tempfile.TemporaryDirectory(prefix="code-parser-ddl-") as tmp:
+        shutil.copy2(ddl_path, Path(tmp) / ddl)
+        stats = build_authoritative(
+            repo_path=repo_path.resolve(),
+            service_name=service,
+            ddl_dir=Path(tmp),
+            db_path=db,
+        )
+
+    print(json.dumps(stats.model_dump(mode="json"), ensure_ascii=False), flush=True)
+    if stats.failure_count:
+        raise SystemExit(f"{service} 解析失败 {stats.failure_count} 项，已停止")
+
+print("\n全部列出的服务已执行完成")
+PY
