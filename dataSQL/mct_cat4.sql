@@ -1040,7 +1040,7 @@ WITH mall AS(
 
 
 
--- INSERT OVERWRITE TABLE changsha_mct_cat4_stat_daily_asc PARTITION(dt)
+INSERT OVERWRITE TABLE changsha_mct_cat4_stat_daily_asc PARTITION(dt)
 
 SELECT
     t1.mall_id -- "商城id" STRING

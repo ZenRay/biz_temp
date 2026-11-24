@@ -5740,6 +5740,7 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
 
 
 
+
 /*
 商家四级类目统计
 */
@@ -6782,7 +6783,7 @@ WITH mall AS(
 
 
 
--- INSERT OVERWRITE TABLE changsha_mct_cat4_stat_daily_asc PARTITION(dt)
+INSERT OVERWRITE TABLE changsha_mct_cat4_stat_daily_asc PARTITION(dt)
 
 SELECT
     t1.mall_id -- "商城id" STRING
