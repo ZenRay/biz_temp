@@ -29,7 +29,8 @@
 # 网络抖动自愈（2026-10-31，当日 dev 实测 3 起瞬断全部人工重跑即好）：
 #   表结构拉取重试 3 次（只读）；DELETE 重试 1 次（按 dt 范围幂等，重执行安全）；
 #   分片导入重试 1 次（既有）；count 校验重试 3 次（既有）。数据类失败不在此列，立即失败。
-# 大数据量：按实测字节自动切 ≤900KB 分片（lark-cli 单请求 1MB 上限），并封顶 ≤5000 行/片
+# 大数据量：按实测字节自动切 ≤900KB 分片（lark-cli 单请求 1MB 上限），行数上限按**列数**收敛
+#   （见分片段 CELL_BUDGET 注释：宽表超限会误报 k_dl_4000011 唯一键冲突），并封顶 ≤5000 行/片
 #   （平台硬性限制 k_dl_4000007: Import exceeds 5000 rows limit），逐片导入。
 set -euo pipefail
 APP=app_17g5uw7qhs7
@@ -170,10 +171,22 @@ import pyarrow.csv as pac
 path, tmp = sys.argv[1], sys.argv[2]
 fixint = sys.argv[3] == '1'
 LIMIT = 900_000
-MAXROWS = 4800  # 平台单请求 ≤5000 行（k_dl_4000007），留余量
+MAXROWS_HARD = 4800  # 平台单请求 ≤5000 行（k_dl_4000007），留余量
+# 单请求单元格预算（2026-11-25 dev 实测定标）：超限时平台**误报** k_dl_4000011
+# 「Intra-batch unique conflict」而非尺寸错误——曾连续两天打死 ads_merchant_category_daily
+# 导入，且 clear 模式先删后导 ⇒ 业务表窗口被清空。
+# 实测边界：73 列表 897 行通过 / 898 行失败，恰为 ⌊65536/73⌋（2^16 单元格）。已逐项排除
+# 字节数（898 行清空 8 个 JSON 列、461KB→230KB 仍失败）、引号转义（等长无引号字符替换仍失败）、
+# 毒行（起点 0/418/2000 三组不相交 898 行同阈值）、网络抖动（同一分片连跑 3 次稳定失败）、
+# 数据真重复（原样+归一化查重均 0）。旁证：撑到 1.44MB 时平台返回明确的
+# 「import data exceeds 1 MB limit」⇒ 它有能力报准尺寸错，故 k_dl_4000011 在大量行下属误报。
+# 65536 非通用规律（33 列县表 4800 行/158400 单元格可过），故按列数收敛并对窄表偏保守
+# （只是多切几片）；取 60000 留 ~9% 余量，不把分片顶在实测边界上。
+CELL_BUDGET = 60_000
 INTFLOAT = re.compile(r'^(-?\d+)\.0+$')
 with open(path, newline='', encoding='utf-8-sig') as f:
     names = next(csv.reader(f))
+MAXROWS = min(MAXROWS_HARD, CELL_BUDGET // len(names))
 reader = pac.open_csv(path,
                       read_options=pac.ReadOptions(autogenerate_column_names=False),
                       convert_options=pac.ConvertOptions(column_types=pa.schema([(c, pa.string()) for c in names])))
@@ -210,7 +223,7 @@ for batch in reader:
 flush()
 open(f'{tmp}/written', 'w').write(f'{written} {fixed}')
 extra = ('，整数化 ' + str(fixed) + ' 格') if fixint else ''
-print(f'分片：{n} 个（≤900KB 且 ≤4800 行/片）写出 {written} 行{extra}')
+print(f'分片：{n} 个（≤900KB 且 ≤{MAXROWS} 行/片，{len(names)} 列）写出 {written} 行{extra}')
 PY
 total=0
 for f in "$TMP"/part_*.csv; do
