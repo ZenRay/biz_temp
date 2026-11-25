@@ -1,3 +1,4 @@
+
 /*
 四级类目统计
 */
@@ -329,12 +330,12 @@ WITH mall AS(
         ,t1.mall_id
         ,COUNT(DISTINCT IF(
             t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
-                AND DATEADD(TO_DATE(t1.dt), 2, "dd")
+                AND DATEADD(TO_DATE(t1.dt), 2, "dd") AND t2.ordered_goods_num>0
             ,t1.customer_store_id, NULL
         )) AS rebuy_store_num_cdta2d_applied_asdt -- "售后三日复购店铺数" BIGINT
         ,COUNT(DISTINCT IF(
             t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
-                AND DATEADD(TO_DATE(t1.dt), 6, "dd")
+                AND DATEADD(TO_DATE(t1.dt), 6, "dd") AND t2.ordered_goods_num>0
             ,t1.customer_store_id, NULL
         )) AS rebuy_store_num_cdta6d_applied_asdt -- "售后七日复购店铺数" BIGINT
         ,COUNT(DISTINCT IF(
@@ -344,12 +345,14 @@ WITH mall AS(
             INSTR(NVL(t3.customer_store_tag, "new"), "new")>0
                 AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
                 AND DATEADD(TO_DATE(t1.dt), 2, "dd")
+                AND t2.ordered_goods_num>0
                 , t1.customer_store_id, NULL
         )) AS rebuy_applied_as_store_num_cdta2d_new_store -- "新客户售后三日复购门店数" BIGINT
         ,COUNT(DISTINCT IF(
             INSTR(NVL(t3.customer_store_tag, "new"), "new")>0
                 AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
                 AND DATEADD(TO_DATE(t1.dt), 6, "dd")
+                AND t2.ordered_goods_num>0
                 , t1.customer_store_id, NULL
         )) AS rebuy_applied_as_store_num_cdta6d_new_store -- "新客户售后七日复购门店数" BIGINT
         
@@ -360,12 +363,14 @@ WITH mall AS(
             INSTR(NVL(t3.customer_store_tag, "new"), "old")>0
                 AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
                 AND DATEADD(TO_DATE(t1.dt), 2, "dd")
+                AND t2.ordered_goods_num>0
                 , t1.customer_store_id, NULL
         )) AS rebuy_applied_as_store_num_cdta2d_old_store -- "老客户售后三日复购门店数" BIGINT
         ,COUNT(DISTINCT IF(
             INSTR(NVL(t3.customer_store_tag, "new"), "old")>0
                 AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
                 AND DATEADD(TO_DATE(t1.dt), 6, "dd")
+                AND t2.ordered_goods_num>0
                 , t1.customer_store_id, NULL
         )) AS rebuy_applied_as_store_num_cdta6d_old_store -- "老客户售后七日复购门店数" BIGINT
 
@@ -377,12 +382,14 @@ WITH mall AS(
             INSTR(NVL(t3.customer_store_tag, "new"), "loss")>0
                 AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
                 AND DATEADD(TO_DATE(t1.dt), 2, "dd")
+                AND t2.ordered_goods_num>0
                 , t1.customer_store_id, NULL
         )) AS rebuy_applied_as_store_num_cdta2d_loss_store -- "流失客户售后三日复购门店数" BIGINT
         ,COUNT(DISTINCT IF(
             INSTR(NVL(t3.customer_store_tag, "new"), "loss")>0
                 AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
                 AND DATEADD(TO_DATE(t1.dt), 6, "dd")
+                AND t2.ordered_goods_num>0
                 , t1.customer_store_id, NULL
         )) AS rebuy_applied_as_store_num_cdta6d_loss_store -- "流失客户售后七日复购门店数" BIGINT
     FROM css_temp t1
