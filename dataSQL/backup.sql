@@ -186,6 +186,8 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
     AND ISNOTNULL(t1.category_level1_id)
 ;
 
+
+
 /*
 四级类目统计
 */
@@ -559,16 +561,16 @@ WITH mall AS(
 
 
         ,COUNT(DISTINCT IF(
-            INSTR(NVL(t3.customer_store_tag, "new"), "old")>0, t1.customer_store_id, NULL
+            INSTR(NVL(t3.customer_store_tag, "new"), "loss")>0, t1.customer_store_id, NULL
         )) AS applied_store_num_by_asdt_loss_store -- "流失客户售后店铺数" BIGINT
         ,COUNT(DISTINCT IF(
-            INSTR(NVL(t3.customer_store_tag, "new"), "old")>0
+            INSTR(NVL(t3.customer_store_tag, "new"), "loss")>0
                 AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
                 AND DATEADD(TO_DATE(t1.dt), 2, "dd")
                 , t1.customer_store_id, NULL
         )) AS rebuy_applied_as_store_num_cdta2d_loss_store -- "流失客户售后三日复购门店数" BIGINT
         ,COUNT(DISTINCT IF(
-            INSTR(NVL(t3.customer_store_tag, "new"), "old")>0
+            INSTR(NVL(t3.customer_store_tag, "new"), "loss")>0
                 AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
                 AND DATEADD(TO_DATE(t1.dt), 6, "dd")
                 , t1.customer_store_id, NULL
@@ -1149,6 +1151,7 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 
 ;
+
 
 
 
