@@ -186,7 +186,6 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
     AND ISNOTNULL(t1.category_level1_id)
 ;
 
-
 /*
 四级类目统计
 */
@@ -195,17 +194,19 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
 
 -- DROP TABLE IF EXISTS changsha_cat4_stat_daily_asc;
 -- CREATE TABLE IF NOT EXISTS changsha_cat4_stat_daily_asc (
--- mall_id STRING COMMENT "商城id"
+-- 	mall_id STRING COMMENT "商城id"
 -- 	,category_level1_id BIGINT COMMENT "一级类目id"
 -- 	,category_level1_name STRING COMMENT "一级类目名称"
 -- 	,category_level4_id BIGINT COMMENT "四级类目id"
 -- 	,category_level4_name STRING COMMENT "四级类目名称"
---     ,onshelved_mct_num  BIGINT COMMENT "上架商品商家数量"
---     ,onshelved_mct_num_full_mct  BIGINT COMMENT "上架商品商家数量"
---     ,delivered_goods_amt_with_pmf  DECIMAL(10,2) COMMENT "平台营销费用产生货值"
---     ,delivered_goods_amt_full_mct  DECIMAL(10,2) COMMENT "全品类商家货值"
+-- 	,onshelved_mct_num BIGINT COMMENT "上架商品商家数量"
+-- 	,onshelved_mct_num_full_mct BIGINT COMMENT "上架商品商家数量"
+-- 	,delivered_goods_amt_with_pmf DECIMAL(10,2) COMMENT "平台营销费用产生货值"
+-- 	,delivered_goods_amt_full_mct DECIMAL(10,2) COMMENT "全品类商家货值"
 -- 	,exposed_store_num BIGINT COMMENT "曝光店铺数"
 -- 	,clicked_store_num BIGINT COMMENT "点击店铺数"
+
+
 -- 	,added_store_num BIGINT COMMENT "加购店铺数"
 -- 	,ordered_store_num BIGINT COMMENT "下单店铺数"
 -- 	,ordered_goods_num BIGINT COMMENT "下单件数"
@@ -217,9 +218,11 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         
 -- 	,refund_amt_by_asdt_plat DECIMAL(10,2) COMMENT "平台承担售后赔付金额售后提交日"
 -- 	,applied_store_num_by_asdt BIGINT COMMENT "提交日售后门店数"
+-- 	,rebuy_store_num_cdta6d_applied_asdt BIGINT COMMENT "售后七日复购店铺数"
+-- 	,rebuy_store_num_cdta2d_applied_asdt BIGINT COMMENT "售后三日复购店铺数"
 -- 	,refund_amt DECIMAL(10,2) COMMENT "售后赔付金额"
 -- 	,applied_after_sale_goods_num BIGINT COMMENT "售后商品数量"
-    
+
 -- 	,delivered_goods_amt_pg DECIMAL(10,2) COMMENT "件单价"
 -- 	,ordered_goods_num_ps DECIMAL(10,1) COMMENT "客均件数"
 -- 	,delivered_goods_amt_ps DECIMAL(10,2) COMMENT "客均货值"
@@ -238,7 +241,6 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
 -- 	,ordered_store_num_new_store BIGINT COMMENT "新客户下单店铺数"
 -- 	,onshelved_mall_num BIGINT COMMENT "在售中心仓数"
 
-
 -- 	,store_num_by_ordered_30d_info STRING COMMENT "近30日内不同下单频次门店数详情"
 -- 	,logon_store_num_by_ordered_30d_info STRING COMMENT "近30日内不同下单频次门店登陆门店数详情"
 -- 	,exposed_store_num_by_ordered_30d_info STRING COMMENT "近30日内不同下单频次曝光门店数数详情"
@@ -256,7 +258,7 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
 -- 	,exposed_store_num_desc_rnk_by_mall BIGINT COMMENT "曝光门店数排名"
 -- 	,exposed_store_ratio_by_mall DECIMAL(10,6) COMMENT "跨仓曝光门店数占商城比例"
 -- 	,exposed_store_ratio_by_mall_desc_rnk BIGINT COMMENT "跨仓曝光门店数占商城比例倒排排名"
-
+    
 -- 	,ordered_store_num_m7d BIGINT COMMENT "周同比下单店铺数"
 -- 	,delivered_goods_amt_m7d DECIMAL(10,2) COMMENT "周同比货值"
 -- 	,delivered_goods_num_m7d BIGINT COMMENT "周同比件数"
@@ -265,6 +267,16 @@ WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
 -- 	,delivered_goods_amt_m6dtcd DECIMAL(20,2) COMMENT "近七日货值"
 -- 	,delivered_goods_num_m6dtcd BIGINT COMMENT "近七日件数"
 -- 	,ordered_cnt_m6dtcd BIGINT COMMENT "近七日交易次数"
+
+-- 	,applied_store_num_by_asdt_new_store BIGINT COMMENT "新客户售后店铺数"
+-- 	,rebuy_applied_as_store_num_cdta2d_new_store BIGINT COMMENT "新客户售后三日复购门店数"
+-- 	,rebuy_applied_as_store_num_cdta6d_new_store BIGINT COMMENT "新客户售后七日复购门店数"
+-- 	,applied_store_num_by_asdt_old_store BIGINT COMMENT "老客户售后店铺数"
+-- 	,rebuy_applied_as_store_num_cdta2d_old_store BIGINT COMMENT "老客户售后三日复购门店数"
+-- 	,rebuy_applied_as_store_num_cdta6d_old_store BIGINT COMMENT "老客户售后七日复购门店数"
+-- 	,applied_store_num_by_asdt_loss_store BIGINT COMMENT "流失客户售后店铺数"
+-- 	,rebuy_applied_as_store_num_cdta2d_loss_store BIGINT COMMENT "流失客户售后三日复购门店数"
+-- 	,rebuy_applied_as_store_num_cdta6d_loss_store BIGINT COMMENT "流失客户售后七日复购门店数"
 -- )PARTITIONED BY 
 -- (
 --     dt STRING COMMENT "日期"
@@ -341,6 +353,34 @@ WITH mall AS(
 
 
 
+,cat4_store_temp AS(
+    SELECT/*+ MAPJOIN(t0) */
+        t0.dt
+        ,t1.mall_id
+        ,t1.customer_store_id
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,COUNT(DISTINCT IF(
+            t1.exposed_cnt>0, t1.dt, NULL
+        )) AS exposed_cnt_30d
+        ,COUNT(DISTINCT IF(
+            t1.ordered_goods_num>0, t1.dt, NULL
+        )) AS ordered_cnt_30d
+    FROM dim_dates t0
+    JOIN datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t1
+        ON t1.dt BETWEEN DATEADD(TO_DATE(t0.dt), -30, "dd")
+            AND DATEADD(TO_DATE(t0.dt), -1, "dd")
+        AND t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6 - 30, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+    WHERE t0.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+
+    GROUP BY t0.dt
+        ,t1.mall_id
+        ,t1.customer_store_id
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+)
 
 ,cat4_store_base AS(
     SELECT
@@ -352,6 +392,7 @@ WITH mall AS(
         ,IF(
             NVL(t1.exposed_cnt_30d, 0)>=7, "+7次", NVL(t1.exposed_cnt_30d, 0) || "次"
         ) AS exposed_days_30d
+        
         ,COUNT(DISTINCT t1.customer_store_id) AS store_num
         ,COUNT(DISTINCT IF( t3.is_login>0, t1.customer_store_id, NULL)) AS logon_store_num
         ,COUNT(DISTINCT IF(
@@ -360,31 +401,7 @@ WITH mall AS(
         ,COUNT(DISTINCT IF(
             t2.ordered_goods_num>0, t1.customer_store_id, NULL 
         )) AS ordered_store_num
-    FROM(
-        SELECT/*+ MAPJOIN(t0) */
-            t0.dt
-            ,t1.mall_id
-            ,t1.customer_store_id
-            ,t1.category_level1_id
-            ,t1.category_level4_id
-            ,COUNT(DISTINCT IF(
-                t1.exposed_cnt>0, t1.dt, NULL
-            )) AS exposed_cnt_30d
-        FROM dim_dates t0
-        JOIN datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t1
-            ON t1.dt BETWEEN DATEADD(TO_DATE(t0.dt), -30, "dd")
-                AND DATEADD(TO_DATE(t0.dt), -1, "dd")
-            AND t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6 - 30, "dd")
-                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-        WHERE t0.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
-                AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
-
-        GROUP BY t0.dt
-            ,t1.mall_id
-            ,t1.customer_store_id
-            ,t1.category_level1_id
-            ,t1.category_level4_id
-    ) t1
+    FROM cat4_store_temp t1
     LEFT JOIN datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t2
         ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
                 AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
@@ -450,16 +467,15 @@ WITH mall AS(
         ,t3.category_level4_id
 )
 
-
-,css AS (
+,css_temp AS(
     SELECT
         t1.dt
         ,t2.category_level1_id
         ,t2.category_level4_id
         ,t1.mall_id
-            
+        ,t1.customer_store_id
         ,SUM(NVL(t1.company_bear_refund_amt, 0)) AS refund_amt_by_asdt_plat -- '平台承担赔付金额
-        ,COUNT(DISTINCT t1.customer_store_id) AS applied_store_num_by_asdt -- "售后门店数量" BIGINT
+        -- ,COUNT(DISTINCT t1.customer_store_id) AS applied_store_num_by_asdt -- "售后门店数量" BIGINT
     FROM datawarehouse_max.dwt_order_after_sale_daily_asc t1
     LEFT JOIN dim_sku t2
         ON t2.dt = t1.dt
@@ -474,10 +490,110 @@ WITH mall AS(
         ,t2.category_level1_id
         ,t2.category_level4_id
         ,t1.mall_id
-
+        ,t1.customer_store_id
 )
 
 
+,css AS (
+    SELECT
+        t1.dt
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,t1.mall_id
+        ,SUM(NVL(t1.refund_amt_by_asdt_plat, 0)) AS refund_amt_by_asdt_plat -- '平台承担赔付金额
+        ,COUNT(DISTINCT t1.customer_store_id) AS applied_store_num_by_asdt -- "售后门店数量" BIGINT
+    FROM css_temp t1
+    GROUP BY t1.dt
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,t1.mall_id
+)
+
+,css_rebuy AS(
+    SELECT
+        t1.dt
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,t1.mall_id
+        ,COUNT(DISTINCT IF(
+            t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
+                AND DATEADD(TO_DATE(t1.dt), 2, "dd")
+            ,t1.customer_store_id, NULL
+        )) AS rebuy_store_num_cdta2d_applied_asdt -- "售后三日复购店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
+                AND DATEADD(TO_DATE(t1.dt), 6, "dd")
+            ,t1.customer_store_id, NULL
+        )) AS rebuy_store_num_cdta6d_applied_asdt -- "售后七日复购店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(NVL(t3.customer_store_tag, "new"), "new")>0, t1.customer_store_id, NULL
+        )) AS applied_store_num_by_asdt_new_store -- "新客户售后店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(NVL(t3.customer_store_tag, "new"), "new")>0
+                AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
+                AND DATEADD(TO_DATE(t1.dt), 2, "dd")
+                , t1.customer_store_id, NULL
+        )) AS rebuy_applied_as_store_num_cdta2d_new_store -- "新客户售后三日复购门店数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(NVL(t3.customer_store_tag, "new"), "new")>0
+                AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
+                AND DATEADD(TO_DATE(t1.dt), 6, "dd")
+                , t1.customer_store_id, NULL
+        )) AS rebuy_applied_as_store_num_cdta6d_new_store -- "新客户售后七日复购门店数" BIGINT
+        
+        ,COUNT(DISTINCT IF(
+            INSTR(NVL(t3.customer_store_tag, "new"), "old")>0, t1.customer_store_id, NULL
+        )) AS applied_store_num_by_asdt_old_store -- "老客户售后店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(NVL(t3.customer_store_tag, "new"), "old")>0
+                AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
+                AND DATEADD(TO_DATE(t1.dt), 2, "dd")
+                , t1.customer_store_id, NULL
+        )) AS rebuy_applied_as_store_num_cdta2d_old_store -- "老客户售后三日复购门店数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(NVL(t3.customer_store_tag, "new"), "old")>0
+                AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
+                AND DATEADD(TO_DATE(t1.dt), 6, "dd")
+                , t1.customer_store_id, NULL
+        )) AS rebuy_applied_as_store_num_cdta6d_old_store -- "老客户售后七日复购门店数" BIGINT
+
+
+        ,COUNT(DISTINCT IF(
+            INSTR(NVL(t3.customer_store_tag, "new"), "old")>0, t1.customer_store_id, NULL
+        )) AS applied_store_num_by_asdt_loss_store -- "流失客户售后店铺数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(NVL(t3.customer_store_tag, "new"), "old")>0
+                AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
+                AND DATEADD(TO_DATE(t1.dt), 2, "dd")
+                , t1.customer_store_id, NULL
+        )) AS rebuy_applied_as_store_num_cdta2d_loss_store -- "流失客户售后三日复购门店数" BIGINT
+        ,COUNT(DISTINCT IF(
+            INSTR(NVL(t3.customer_store_tag, "new"), "old")>0
+                AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
+                AND DATEADD(TO_DATE(t1.dt), 6, "dd")
+                , t1.customer_store_id, NULL
+        )) AS rebuy_applied_as_store_num_cdta6d_loss_store -- "流失客户售后七日复购门店数" BIGINT
+    FROM css_temp t1
+    JOIN datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t2
+        ON t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
+            AND DATEADD(TO_DATE(t1.dt), 6, "dd")
+        AND t2.customer_store_id = t1.customer_store_id
+        AND t2.category_level1_id = t1.category_level1_id
+        AND t2.category_level4_id = t1.category_level4_id
+        AND t2.mall_id = t1.mall_id
+    LEFT JOIN datawarehouse_max.dws_pub_mall_cate4_customer_tag_daily_asc t3
+        ON t3.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND t3.dt = t1.dt
+        AND t3.mall_id = t1.mall_id
+        AND t3.customer_store_id = t1.customer_store_id
+        AND t3.category_level4_id = t1.category_level4_id
+    GROUP BY t1.dt
+        ,t1.category_level1_id
+        ,t1.category_level4_id
+        ,t1.mall_id
+
+)
 
 
 ,recommends_stat AS(
@@ -950,6 +1066,8 @@ SELECT
         
 	,t1.refund_amt_by_asdt_plat -- "平台承担售后赔付金额售后提交日" DECIMAL(10,2)
 	,t1.applied_store_num_by_asdt -- "提交日售后门店数" BIGINT
+    ,t4.rebuy_store_num_cdta6d_applied_asdt -- "售后七日复购店铺数" BIGINT
+    ,t4.rebuy_store_num_cdta2d_applied_asdt -- "售后三日复购店铺数" BIGINT
 	,t1.refund_amt -- "售后赔付金额" DECIMAL(10,2)
 	,t1.applied_after_sale_goods_num -- "售后商品数量" BIGINT
 
@@ -970,7 +1088,6 @@ SELECT
 	,t1.ordered_store_num_loss_store -- "召回客户下单店铺数" BIGINT
 	,t1.ordered_store_num_new_store -- "新客户下单店铺数" BIGINT
 	,t1.onshelved_mall_num -- "在售中心仓数" BIGINT
-
 
 	,t1.store_num_by_ordered_30d_info -- "近30日内不同下单频次门店数详情" STRING
 	,t1.logon_store_num_by_ordered_30d_info -- "近30日内不同下单频次门店登陆门店数详情" STRING
@@ -998,6 +1115,17 @@ SELECT
     ,t3.delivered_goods_amt_m6dtcd -- "近七日货值" DECIMAL(20,2)
     ,t3.delivered_goods_num_m6dtcd -- "近七日件数" BIGINT
     ,t3.ordered_cnt_m6dtcd -- "近七日交易次数" BIGINT
+
+    ,t4.applied_store_num_by_asdt_new_store -- "新客户售后店铺数" BIGINT
+    ,t4.rebuy_applied_as_store_num_cdta2d_new_store -- "新客户售后三日复购门店数" BIGINT
+    ,t4.rebuy_applied_as_store_num_cdta6d_new_store -- "新客户售后七日复购门店数" BIGINT
+    ,t4.applied_store_num_by_asdt_old_store -- "老客户售后店铺数" BIGINT
+    ,t4.rebuy_applied_as_store_num_cdta2d_old_store -- "老客户售后三日复购门店数" BIGINT
+    ,t4.rebuy_applied_as_store_num_cdta6d_old_store -- "老客户售后七日复购门店数" BIGINT
+    ,t4.applied_store_num_by_asdt_loss_store -- "流失客户售后店铺数" BIGINT
+    ,t4.rebuy_applied_as_store_num_cdta2d_loss_store -- "流失客户售后三日复购门店数" BIGINT
+    ,t4.rebuy_applied_as_store_num_cdta6d_loss_store -- "流失客户售后七日复购门店数" BIGINT
+
     ,t1.dt
 
 FROM base t1
@@ -1011,6 +1139,12 @@ LEFT JOIN roll_7d t3
     AND t3.mall_id = t1.mall_id
     AND t3.category_level1_id = t1.category_level1_id
     AND t3.category_level4_id = t1.category_level4_id
+
+LEFT JOIN css_rebuy t4
+    ON t4.dt = t1.dt
+    AND t4.mall_id = t1.mall_id
+    AND t4.category_level1_id = t1.category_level1_id
+    AND t4.category_level4_id = t1.category_level4_id
 WHERE t1.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6, "dd")
         AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
 
