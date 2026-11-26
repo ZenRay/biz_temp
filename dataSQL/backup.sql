@@ -583,7 +583,9 @@ WITH mall AS(
         )) AS rebuy_applied_as_store_num_cdta6d_loss_store -- "流失客户售后七日复购门店数" BIGINT
     FROM css_temp t1
     JOIN datawarehouse_max.dws_store_mall_store_category_level4_base_daily_asc t2
-        ON t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
+        ON t2.dt BETWEEN DATEADD(TO_DATE("${dt}"), BIGINT("${offset}") - 6 - 7, "dd")
+            AND DATEADD(TO_DATE("${dt}"), BIGINT("${offset}"), "dd")
+        AND t2.dt BETWEEN DATEADD(TO_DATE(t1.dt), -0, "dd")
             AND DATEADD(TO_DATE(t1.dt), 6, "dd")
         AND t2.customer_store_id = t1.customer_store_id
         AND t2.category_level1_id = t1.category_level1_id
